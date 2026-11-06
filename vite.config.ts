@@ -13,7 +13,10 @@ export default defineConfig({
   base,
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [
-    preact(),
+    // devToolsEnabled: false keeps `preact/debug` out of the dev bundle. With Preact 11 the
+    // debug hooks wrapper conflicts with @preact/signals 2.x (TypeError reading '__$f' in dev
+    // only). Re-enable once @preact/signals supports it; production is unaffected either way.
+    preact({ devToolsEnabled: false }),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
