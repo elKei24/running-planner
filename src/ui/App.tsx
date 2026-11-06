@@ -1,4 +1,5 @@
-import { loadError, state } from '@/store/state';
+import { downloadText, exportJson } from '@/io/json';
+import { loadError, persistFailed, state, todayDate } from '@/store/state';
 import { route } from './router';
 import { Setup } from './Setup';
 import { WeekView } from './WeekView';
@@ -23,6 +24,19 @@ export function App() {
       {err && (
         <div class="alert danger" role="alert">
           Stored data could not be read ({err.message}). You can start over below, or recover the raw data from Settings → Data after creating a plan.
+        </div>
+      )}
+      {s && persistFailed.value && (
+        <div class="alert danger" role="alert">
+          <div class="row between">
+            <span>
+              This browser is not saving your data (storage is blocked or full). Changes will be lost when you close the tab. Export a backup now and
+              re-import it in a browser that allows site data.
+            </span>
+            <button class="btn small" type="button" onClick={() => downloadText(`running-planner-${todayDate.value}.json`, exportJson(s))}>
+              Export backup
+            </button>
+          </div>
         </div>
       )}
       {!s ? <Setup /> : <Main />}

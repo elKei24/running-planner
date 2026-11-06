@@ -1,5 +1,34 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createPlan, excludeDay, resetPlan, schedule, state, todayDate } from './state';
+import { memoryStorage } from '@/test/memoryStorage';
+import { createPlan, excludeDay, initStore, persistFailed, resetPlan, schedule, state, todayDate } from './state';
+
+const athlete = { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, longRunDay: 6 as const, peakWeeklyKm: 70 };
+const goal = { date: '2027-03-14', distanceKm: 42.195 };
+
+describe('persistFailed', () => {
+  it('is set when the storage rejects writes and cleared when writes succeed again', () => {
+    const working = memoryStorage();
+    const broken = { ...memoryStorage(), setItem: () => { throw new Error('QuotaExceededError'); } };
+    resetPlan();
+    initStore(broken);
+    createPlan(athlete, goal);
+    expect(persistFailed.value).toBe(true);
+    initStore(working);
+    createPlan(athlete, goal);
+    expect(persistFailed.value).toBe(false);
+    expect(working.data.size).toBe(1);
+  });
+
+  it('is set when there is no storage at all', () => {
+    resetPlan();
+    initStore(null);
+    createPlan(athlete, goal);
+    expect(persistFailed.value).toBe(true);
+    resetPlan();
+    expect(persistFailed.value).toBe(false);
+    initStore(memoryStorage());
+  });
+});
 
 describe('excludeDay', () => {
   beforeEach(() => {

@@ -21,6 +21,12 @@ function initialToday(): LocalDate {
 export const todayDate = signal<LocalDate>(initialToday());
 export const state = signal<PlannerState | null>(null);
 export const loadError = signal<{ message: string; raw: string } | null>(null);
+/**
+ * True when the last attempt to persist failed (no storage available, quota
+ * exceeded, private window that blocks site data). Changes then live only in
+ * memory until the tab closes.
+ */
+export const persistFailed = signal(false);
 
 export const schedule = computed<Schedule | null>(() => (state.value ? plan(state.value, todayDate.value) : null));
 
@@ -31,14 +37,15 @@ export const currentWeek = computed(() => {
   return s.weeks.find((w) => w.startDate === anchor) ?? null;
 });
 
-let storage: Storage | undefined;
+let storage: Storage | null | undefined;
 let persistenceEnabled = false;
 
 /**
  * Load from storage and start persisting changes. Call once at startup.
- * Tests pass an in-memory storage; the app uses the browser's localStorage.
+ * Tests pass an in-memory storage (or null for "no storage at all"); the app
+ * uses the browser's localStorage.
  */
-export function initStore(target: Storage | undefined = defaultStorage()): void {
+export function initStore(target: Storage | null | undefined = defaultStorage()): void {
   storage = target;
   const loaded = loadState(storage ?? null);
   state.value = loaded.state;
@@ -46,7 +53,8 @@ export function initStore(target: Storage | undefined = defaultStorage()): void 
   if (!persistenceEnabled) {
     persistenceEnabled = true;
     effect(() => {
-      if (state.value) saveState(state.value, storage ?? null);
+      if (!state.value) return;
+      persistFailed.value = !saveState(state.value, storage ?? null);
     });
   }
 }
@@ -74,6 +82,7 @@ export function replaceState(next: PlannerState): void {
 
 export function resetPlan(): void {
   state.value = null;
+  persistFailed.value = false;
   clearState(storage ?? null);
 }
 

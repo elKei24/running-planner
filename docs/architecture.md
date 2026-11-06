@@ -66,6 +66,11 @@ The state document carries a `version`. `store/migrations.ts` upgrades older doc
 before `store/schema.ts` validates them. Validation is hand-written (no schema library) to keep the
 bundle small; it is strict about shapes and ranges and reports the failing path.
 
+Every change to the state signal is written to `localStorage` synchronously by an effect in
+`store/state.ts`; nothing is batched or delayed. If a write fails (no storage, quota exceeded, a
+private window that blocks site data) the `persistFailed` signal is set and the app shows a
+persistent banner with an export button, so the athlete knows their changes are in memory only.
+
 If stored data cannot be read, the app keeps the raw text available for download rather than
 silently discarding it.
 

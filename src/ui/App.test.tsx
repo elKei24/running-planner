@@ -89,6 +89,22 @@ describe('App', () => {
     expect(schedule.value!.fitness.levelKm).toBeGreaterThan(before);
   });
 
+  it('warns when the browser refuses to persist', async () => {
+    const broken = { ...memoryStorage(), setItem: () => { throw new Error('blocked'); } };
+    initStore(broken);
+    createPlan(athlete, { date: '2027-03-14', distanceKm: 42.195 });
+    render(<App />);
+    expect(screen.getByText(/not saving your data/)).toBeTruthy();
+    const urls: string[] = [];
+    URL.createObjectURL = () => { urls.push('blob:x'); return 'blob:x'; };
+    URL.revokeObjectURL = () => {};
+    await act(async () => {
+      fireEvent.click(screen.getByText('Export backup'));
+    });
+    expect(urls).toHaveLength(1);
+    initStore(storage);
+  });
+
   it('replaces state on import', () => {
     createPlan(athlete, { date: '2027-03-14', distanceKm: 42.195 });
     replaceState({ ...state.value!, goal: { date: '2027-04-11', distanceKm: 42.195 } });
