@@ -7,9 +7,10 @@ export default defineConfig({
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   define: { __APP_VERSION__: JSON.stringify('test') },
   test: {
-    environment: 'node',
-    environmentMatchGlobs: [['src/ui/**', 'happy-dom'], ['src/store/**', 'happy-dom']],
-    include: ['src/**/*.test.{ts,tsx}'],
+    projects: [
+      { extends: true, test: { name: 'node', environment: 'node', include: ['src/domain/**/*.test.ts', 'src/planner/**/*.test.ts', 'src/io/**/*.test.ts'] } },
+      { extends: true, test: { name: 'dom', environment: 'happy-dom', include: ['src/ui/**/*.test.{ts,tsx}', 'src/store/**/*.test.ts'] } },
+    ],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],

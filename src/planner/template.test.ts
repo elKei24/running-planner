@@ -89,9 +89,10 @@ describe('distribute', () => {
         (target, phase, cap, q, e) => {
           const d = distribute(target, phase, cap, q, e);
           const total = d.longKm + d.qualityKm.reduce((a, b) => a + b, 0) + d.easyKm.reduce((a, b) => a + b, 0);
-          // Quality sessions have a floor of 5 km, so tiny targets can be exceeded.
+          // Quality sessions have a floor of 5 km, so tiny targets can be exceeded;
+          // each session is rounded to 0.5 km, so up to 8 sessions can add 2 km.
           const floor = q * 5;
-          expect(total).toBeLessThanOrEqual(Math.max(target, floor) + 1.5);
+          expect(total).toBeLessThanOrEqual(Math.max(target, floor) + 2.5);
           expect(d.longKm).toBeLessThanOrEqual(Math.min(cap, 35) + 0.5);
           expect(d.easyKm.length).toBeLessThanOrEqual(e);
         },

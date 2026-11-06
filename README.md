@@ -12,6 +12,8 @@ An adaptive marathon training plan that lives entirely in your browser. No accou
 
 ## Development
 
+Requires Node 24 or newer (`.nvmrc` pins 26).
+
 ```sh
 npm ci
 npm run dev        # http://localhost:5173

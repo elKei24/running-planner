@@ -18,5 +18,6 @@ The UI is small (five views). Bundle size and build simplicity matter more than 
 ## Consequences
 
 - Production bundle is ~27 KB gzipped (JS) + ~3 KB CSS at the MVP.
-- Vitest 3.x is pinned because npm 10 fails to resolve vitest 4's peer-dependency set
-  (`Cannot read properties of null (reading 'edgesOut')`). Revisit when the CI runner's npm is newer.
+- Node 24 or newer is required (`engines`, `.nvmrc` says 26, CI runs on 26). npm 10 (Node 22)
+  fails to resolve Vitest 4's peer-dependency set (`Cannot read properties of null (reading
+  'edgesOut')`); npm 11+ does not, so Vitest 4 is used.
