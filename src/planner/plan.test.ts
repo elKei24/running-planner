@@ -144,6 +144,20 @@ describe('plan', () => {
     expect(week.notes.join(' ')).toContain('availability');
   });
 
+  it('never schedules a shorter long run than the athlete already does', () => {
+    const s = plan(baseState({ athlete: { ...baseState().athlete, weeklyKmRecent: 40, longestRecentRunKm: 19, daysPerWeek: 4, peakWeeklyKm: 60 }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
+    const first = s.weeks[0]!.sessions.find((x) => x.type === 'long')!;
+    expect(first.distanceKm).toBe(19);
+    // A step-back week may shrink it, but never below 60 % of that week.
+    for (const w of s.weeks.filter((w) => w.phase !== 'taper' && !w.isRaceWeek)) {
+      const long = w.sessions.find((x) => x.type === 'long');
+      if (long) expect(long.distanceKm).toBeGreaterThanOrEqual(Math.min(19, w.targetKm * 0.6) - 0.5);
+    }
+    // Created mid-week: the partial week still carries the full long run.
+    const partial = plan(baseState({ createdAt: '2026-11-04', athlete: { ...baseState().athlete, weeklyKmRecent: 40, longestRecentRunKm: 19, daysPerWeek: 4, peakWeeklyKm: 60 } }), '2026-11-04');
+    expect(partial.weeks[0]!.sessions.find((x) => x.type === 'long')!.distanceKm).toBe(19);
+  });
+
   it('reaches 28–32 km long runs at 60 km/week given a long horizon', () => {
     const s = plan(baseState({ athlete: { ...baseState().athlete, daysPerWeek: 4, peakWeeklyKm: 60 }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
     const peakWeeks = s.weeks.filter((w) => w.phase === 'peak');

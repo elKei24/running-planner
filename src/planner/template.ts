@@ -19,6 +19,17 @@ export const MARATHON_LONG_RUN_TARGET_KM = 32;
 export const MARATHON_LONG_RUN_FIRST_KM = 28;
 /** A long run should never be more than half the week. */
 export const MAX_LONG_RUN_SHARE = 0.5;
+/** ...unless the athlete demonstrably already runs it: then up to 60 % of the week. */
+export const MAX_ESTABLISHED_LONG_RUN_SHARE = 0.6;
+
+/**
+ * The long run never regresses below what the athlete already does: the
+ * recent longest run (declared at setup, then taken from the log), limited to
+ * 60 % of the week so that step-back, blocked and post-layoff weeks still shrink it.
+ */
+export function establishedLongRunFloor(recentLongestKm: number, weekKm: number): number {
+  return Math.max(0, Math.min(recentLongestKm, weekKm * MAX_ESTABLISHED_LONG_RUN_SHARE));
+}
 
 /**
  * Floor for a peak-phase long run when training for a marathon: at least
@@ -201,7 +212,8 @@ export function distribute(
 ): Distribution {
   const target = Math.max(0, targetKm);
   const cap = Math.min(longCapKm, MAX_LONG_RUN_KM);
-  const wanted = Math.max(target * longRunFraction(phase, target), Math.min(longFloorKm, target * MAX_LONG_RUN_SHARE));
+  // The caller is responsible for keeping the floor a sane share of the week.
+  const wanted = Math.max(target * longRunFraction(phase, target), longFloorKm);
   let longKm = Math.min(wanted, cap);
   const qFraction = phase === 'base' ? 0.15 : 0.18;
   // No other run may exceed the long-run cap: volume that cannot be placed is dropped.

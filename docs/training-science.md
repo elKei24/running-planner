@@ -47,6 +47,9 @@ than a finding, it says so. Sources are listed at the end.
   33 % at 100 km/week in the peak phase, scaled down in base/build/taper. Capped at 35 km and at
   about 3.5 hours at easy pace. Longer than that adds damage faster than fitness for most
   amateurs. See ADR 0011 for the reasoning and the published plans it was checked against.
+- **Never below what you already run** (ADR 0014): the recent longest run (declared, then from
+  the log) is a floor for every week's long run, up to 60 % of that week. The plan starts from
+  your habit and grows from there; reduced weeks still shrink it.
 - **Marathon floor in the peak phase** (ADR 0013): for goals over 40 km, peak long runs are at
   least min(32 km, 50 % of the week), progressing 28 → 30 → 32 km. Moderate-volume marathoners
   need the distance more than the share rule allows; 50 % of the week is the accepted ceiling.

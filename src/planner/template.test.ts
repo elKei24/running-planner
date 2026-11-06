@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import type { Weekday } from '@/domain/dates';
 import type { Phase } from '@/domain/types';
 import { paceZones } from './paces';
-import { buildWeek, chooseRunDays, distribute, fmtKm, longRunFraction, marathonLongRunFloor, marathonPaceShare, peakLongRunKm, qualityKinds, structureQuality } from './template';
+import { buildWeek, chooseRunDays, distribute, establishedLongRunFloor, fmtKm, longRunFraction, marathonLongRunFloor, marathonPaceShare, peakLongRunKm, qualityKinds, structureQuality } from './template';
 import type { WeekTemplateInput } from './template';
 
 const ALL: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
@@ -185,6 +185,16 @@ describe('buildWeek', () => {
     expect(qualityKinds('taper', 1, 5, false, 1, 3)).toEqual(['tempo']);
     expect(qualityKinds('taper', 0, 5, false, 0, 1)).toEqual(['tempo']);
     expect(structureQuality('intervals', 20, 'taper').title).toBe('5 × 1 km intervals');
+  });
+
+  it('keeps the long run at the recent longest, within 60 % of the week', () => {
+    expect(establishedLongRunFloor(19, 40)).toBe(19);
+    expect(establishedLongRunFloor(19, 25)).toBe(15);
+    expect(establishedLongRunFloor(0, 40)).toBe(0);
+    const d = distribute(40, 'base', 22, 1, 3, 19);
+    expect(d.longKm).toBe(19);
+    const total = d.longKm + d.qualityKm.reduce((a, b) => a + b, 0) + d.easyKm.reduce((a, b) => a + b, 0);
+    expect(Math.abs(total - 40)).toBeLessThan(1.5);
   });
 
   it('applies the marathon floor in the peak phase, never beyond half the week', () => {

@@ -13,7 +13,7 @@ import { applyGoalRace, applyRaces } from './events';
 import { estimateFitness } from './fitness';
 import { formatDuration, paceZones, vdotFromRace } from './paces';
 import { periodize } from './periodize';
-import { buildWeek, marathonLongRunFloor, MAX_LONG_RUN_KM } from './template';
+import { buildWeek, establishedLongRunFloor, marathonLongRunFloor, MAX_LONG_RUN_KM } from './template';
 import type { WeekTemplateInput } from './template';
 import { computeVolumes } from './volume';
 import type { WeekVolumeInput } from './volume';
@@ -97,7 +97,12 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     const phaseOrdinal = i - phases.indexOf(phase);
     const phaseLength = phases.filter((p) => p === phase).length;
     const easyOnly = i < easyOnlyWeeks && phase !== 'taper';
-    const longFloorKm = easyOnly ? 0 : marathonLongRunFloor(state.goal.distanceKm, phase, vol.targetKm * partial, phaseOrdinal);
+    // Never below what the athlete already runs (share of the full week, so a partial
+    // first week keeps its long run), and at least the marathon target in the peak phase.
+    const longFloorKm = Math.max(
+      establishedLongRunFloor(fitness.longRunKm, vol.targetKm),
+      easyOnly ? 0 : marathonLongRunFloor(state.goal.distanceKm, phase, vol.targetKm * partial, phaseOrdinal),
+    );
     const input: WeekTemplateInput = {
       index: i,
       startDate: start,
