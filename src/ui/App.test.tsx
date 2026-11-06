@@ -3,6 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { App } from './App';
 import { addEvent, createPlan, initStore, logRun, replaceState, resetPlan, schedule, state, todayDate } from '@/store/state';
 import { STORAGE_KEY } from '@/store/persist';
+import { memoryStorage } from '@/test/memoryStorage';
+
+const storage = memoryStorage();
 import { navigate } from './router';
 
 const athlete = { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, longRunDay: 6 as const, peakWeeklyKm: 75, referenceRace: { distanceKm: 10, timeSec: 2880 } };
@@ -10,10 +13,10 @@ const athlete = { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, lo
 describe('App', () => {
   beforeEach(() => {
     cleanup();
-    window.localStorage.clear();
+    storage.data.clear();
     todayDate.value = '2026-11-06';
     resetPlan();
-    initStore();
+    initStore(storage);
     navigate('week');
   });
 
@@ -32,7 +35,7 @@ describe('App', () => {
     expect(state.value!.createdAt).toBe('2026-11-06');
     expect(screen.getByText(/Week 1 of/)).toBeTruthy();
     // Persisted.
-    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).goal.date).toBe('2027-03-14');
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).goal.date).toBe('2027-03-14');
   });
 
   it('renders the current week with sessions and navigates between weeks', async () => {

@@ -9,7 +9,7 @@ export interface Storage {
   removeItem(key: string): void;
 }
 
-function defaultStorage(): Storage | undefined {
+export function defaultStorage(): Storage | undefined {
   try {
     // Prefer the browser's window.localStorage: newer Node versions expose a
     // global `localStorage` that is undefined unless a storage file is set.

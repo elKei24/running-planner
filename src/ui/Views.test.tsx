@@ -3,6 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { App } from './App';
 import { addEvent, createPlan, initStore, logRun, removeEvent, removeLog, resetPlan, schedule, state, todayDate, updateAthlete, updateGoal } from '@/store/state';
 import { navigate } from './router';
+import { memoryStorage } from '@/test/memoryStorage';
+
+const storage = memoryStorage();
 
 const athlete = { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, longRunDay: 6 as const, peakWeeklyKm: 75, referenceRace: { distanceKm: 10, timeSec: 2880 } };
 
@@ -16,10 +19,10 @@ async function type(el: Element, value: string) {
 describe('views', () => {
   beforeEach(() => {
     cleanup();
-    window.localStorage.clear();
+    storage.data.clear();
     todayDate.value = '2026-11-06';
     resetPlan();
-    initStore();
+    initStore(storage);
     createPlan(athlete, { date: '2027-03-14', distanceKm: 42.195, targetTimeSec: 13500 });
   });
 

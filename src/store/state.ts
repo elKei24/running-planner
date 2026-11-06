@@ -4,7 +4,8 @@ import type { LocalDate, Weekday } from '@/domain/dates';
 import { SCHEMA_VERSION } from '@/domain/types';
 import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Schedule, Units } from '@/domain/types';
 import { plan } from '@/planner/plan';
-import { clearState, loadState, saveState } from './persist';
+import { clearState, defaultStorage, loadState, saveState } from './persist';
+import type { Storage } from './persist';
 
 /** `?today=YYYY-MM-DD` lets you time-travel for demos and manual testing. */
 function initialToday(): LocalDate {
@@ -30,17 +31,22 @@ export const currentWeek = computed(() => {
   return s.weeks.find((w) => w.startDate === anchor) ?? null;
 });
 
+let storage: Storage | undefined;
 let persistenceEnabled = false;
 
-/** Load from storage and start persisting changes. Call once at startup. */
-export function initStore(): void {
-  const loaded = loadState();
+/**
+ * Load from storage and start persisting changes. Call once at startup.
+ * Tests pass an in-memory storage; the app uses the browser's localStorage.
+ */
+export function initStore(target: Storage | undefined = defaultStorage()): void {
+  storage = target;
+  const loaded = loadState(storage ?? null);
   state.value = loaded.state;
   loadError.value = loaded.error ?? null;
   if (!persistenceEnabled) {
     persistenceEnabled = true;
     effect(() => {
-      if (state.value) saveState(state.value);
+      if (state.value) saveState(state.value, storage ?? null);
     });
   }
 }
@@ -68,7 +74,7 @@ export function replaceState(next: PlannerState): void {
 
 export function resetPlan(): void {
   state.value = null;
-  clearState();
+  clearState(storage ?? null);
 }
 
 export function updateGoal(goal: Goal): void {
