@@ -83,7 +83,7 @@ function AthleteSettings() {
   return (
     <form class="card" onSubmit={save}>
       <h2>Athlete</h2>
-      <AthleteFields value={form} onChange={setForm} />
+      <AthleteFields value={form} onChange={setForm} goalKm={s.goal.distanceKm} />
       <label class="checks" style={{ marginTop: 12 }}>
         <label>
           <input type="checkbox" checked={rebaseline} onChange={(e) => setRebaseline((e.currentTarget as HTMLInputElement).checked)} />

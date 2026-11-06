@@ -42,7 +42,7 @@ export function Setup() {
       </div>
       <div class="card">
         <h2>Where you are now</h2>
-        <AthleteFields value={athlete} onChange={onAthlete} />
+        <AthleteFields value={athlete} onChange={onAthlete} goalKm={Number(goal.distanceKm) || 42.195} />
       </div>
       {error && <div class="alert danger" role="alert">{error}</div>}
       <button class="btn primary" type="submit">Create my plan</button>

@@ -45,8 +45,11 @@ than a finding, it says so. Sources are listed at the end.
 
 - **Share of weekly volume depends on the volume** (`longRunFraction`): 45 % at 40 km/week down to
   33 % at 100 km/week in the peak phase, scaled down in base/build/taper. Capped at 35 km and at
-  about three hours at easy pace. Longer than ~3 h adds damage faster than fitness for most
+  about 3.5 hours at easy pace. Longer than that adds damage faster than fitness for most
   amateurs. See ADR 0011 for the reasoning and the published plans it was checked against.
+- **Marathon floor in the peak phase** (ADR 0013): for goals over 40 km, peak long runs are at
+  least min(32 km, 50 % of the week), progressing 28 → 30 → 32 km. Moderate-volume marathoners
+  need the distance more than the share rule allows; 50 % of the week is the accepted ceiling.
 - **Marathon-pace finishes progress** through the peak phase: every other long run (and the last
   one) ends with 30 % → 40 % → 50 % of its distance at goal pace (`marathonPaceShare`, ADR 0012).
 - **Growth capped relative to what was recently done**: the first long run is at most 3 km longer

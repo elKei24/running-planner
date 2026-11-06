@@ -3,6 +3,7 @@ import { WEEKDAY_LONG_NAMES } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import type { Athlete, Goal } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
+import { peakLongRunKm } from '@/planner/template';
 import { DISTANCE_PRESETS } from './format';
 
 /**
@@ -103,8 +104,10 @@ export function formToAthlete(f: AthleteFormValue): Athlete | string {
   return athlete;
 }
 
-export function AthleteFields({ value, onChange }: { value: AthleteFormValue; onChange: (v: AthleteFormValue) => void }) {
+export function AthleteFields({ value, onChange, goalKm = 42.195 }: { value: AthleteFormValue; onChange: (v: AthleteFormValue) => void; goalKm?: number }) {
   const set = (k: keyof AthleteFormValue) => (e: Event) => onChange({ ...value, [k]: (e.currentTarget as HTMLInputElement).value });
+  const peak = Number(value.peakWeeklyKm);
+  const impliedLong = peak > 0 ? peakLongRunKm(peak, goalKm) : 0;
   return (
     <div class="grid">
       <label class="field">
@@ -134,7 +137,10 @@ export function AthleteFields({ value, onChange }: { value: AthleteFormValue; on
       </label>
       <label class="field">
         Peak weekly volume (km)
-        <span class="hint">The most you want to run in the biggest week.</span>
+        <span class="hint">
+          The most you want to run in the biggest week.
+          {impliedLong > 0 ? ` At ${Math.round(peak)} km/week the longest run will be about ${impliedLong} km${goalKm > 40 && impliedLong < 28 ? ' (28–32 km is ideal for a marathon)' : ''}.` : ''}
+        </span>
         <input type="number" min="10" step="5" inputMode="decimal" value={value.peakWeeklyKm} onInput={set('peakWeeklyKm')} required />
       </label>
       <label class="field">

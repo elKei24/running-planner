@@ -14,6 +14,29 @@ export function fmtKm(km: number, units: Units = 'km'): string {
 }
 
 export const MAX_LONG_RUN_KM = 35;
+/** Marathon-specific target for peak-phase long runs (ADR 0013). */
+export const MARATHON_LONG_RUN_TARGET_KM = 32;
+export const MARATHON_LONG_RUN_FIRST_KM = 28;
+/** A long run should never be more than half the week. */
+export const MAX_LONG_RUN_SHARE = 0.5;
+
+/**
+ * Floor for a peak-phase long run when training for a marathon: at least
+ * min(target, half the week), progressing from 28 km to 32 km across the phase.
+ * Returns 0 for shorter goals or other phases.
+ */
+export function marathonLongRunFloor(goalKm: number, phase: Phase, weekKm: number, phaseOrdinal = 0): number {
+  if (goalKm <= 40 || phase !== 'peak') return 0;
+  const progressed = Math.min(MARATHON_LONG_RUN_TARGET_KM, MARATHON_LONG_RUN_FIRST_KM + 2 * phaseOrdinal);
+  return Math.min(progressed, weekKm * MAX_LONG_RUN_SHARE);
+}
+
+/** Longest run a peak week of `weekKm` implies for a goal of `goalKm` (before time/growth caps). */
+export function peakLongRunKm(weekKm: number, goalKm: number): number {
+  const share = weekKm * longRunFraction('peak', weekKm);
+  const floor = marathonLongRunFloor(goalKm, 'peak', weekKm, 2);
+  return Math.round(Math.min(MAX_LONG_RUN_KM, Math.max(share, floor)) * 2) / 2;
+}
 export const MIN_EASY_RUN_KM = 4;
 export const MIN_QUALITY_RUN_KM = 5;
 export const MIN_WEEK_FOR_QUALITY_KM = 15;
@@ -33,6 +56,8 @@ export interface WeekTemplateInput {
   blockedDates: Map<LocalDate, string>;
   /** Maximum long run length this week. */
   longCapKm: number;
+  /** Minimum long run length this week (marathon floor), 0 when none. */
+  longFloorKm?: number;
   paces?: PaceZones;
   /** Days before this date are not planned. */
   createdAt: LocalDate;
@@ -172,10 +197,12 @@ export function distribute(
   longCapKm: number,
   qualityCount: number,
   easyDays: number,
+  longFloorKm = 0,
 ): Distribution {
   const target = Math.max(0, targetKm);
   const cap = Math.min(longCapKm, MAX_LONG_RUN_KM);
-  let longKm = Math.min(target * longRunFraction(phase, target), cap);
+  const wanted = Math.max(target * longRunFraction(phase, target), Math.min(longFloorKm, target * MAX_LONG_RUN_SHARE));
+  let longKm = Math.min(wanted, cap);
   const qFraction = phase === 'base' ? 0.15 : 0.18;
   // No other run may exceed the long-run cap: volume that cannot be placed is dropped.
   const perRunCap = Math.max(cap, MIN_QUALITY_RUN_KM);
@@ -286,6 +313,7 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
     availableDays,
     blockedDates,
     longCapKm,
+    longFloorKm = 0,
     paces,
     createdAt,
     phaseOrdinal = 0,
@@ -301,7 +329,7 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
   const kinds = easyOnly || targetKm < MIN_WEEK_FOR_QUALITY_KM ? [] : qualityKinds(phase, index, daysPerWeek, reduced, phaseOrdinal, phaseLength);
   const f = (n: number) => fmtKm(n, units);
   const roles = chooseRunDays(longRunDay, daysPerWeek, available, kinds.length);
-  const dist = distribute(targetKm, phase, longCapKm, roles.quality.length, roles.easy.length);
+  const dist = distribute(targetKm, phase, longCapKm, roles.quality.length, roles.easy.length, longFloorKm);
 
   const sessions: Session[] = dates.map((date, d) => {
     const blocked = blockedDates.get(date);

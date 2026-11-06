@@ -144,6 +144,23 @@ describe('plan', () => {
     expect(week.notes.join(' ')).toContain('availability');
   });
 
+  it('reaches 28–32 km long runs at 60 km/week given a long horizon', () => {
+    const s = plan(baseState({ athlete: { ...baseState().athlete, daysPerWeek: 4, peakWeeklyKm: 60 }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
+    const peakWeeks = s.weeks.filter((w) => w.phase === 'peak');
+    const peakLongs = peakWeeks.filter((w) => !w.isStepBack).map((w) => w.sessions.find((x) => x.type === 'long')!.distanceKm);
+    expect(peakLongs.length).toBeGreaterThanOrEqual(2);
+    for (const km of peakLongs) expect(km).toBeGreaterThanOrEqual(29.5); // half of a 60 km week
+    expect(peakLongs[peakLongs.length - 1]).toBe(30);
+    expect(s.warnings.some((w) => w.message.includes('longest planned run'))).toBe(false);
+  });
+
+  it('names the binding limit when the long run stays short', () => {
+    const lowVolume = plan(baseState({ athlete: { ...baseState().athlete, peakWeeklyKm: 45 }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
+    expect(lowVolume.warnings.find((w) => w.message.includes('longest planned run'))!.message).toContain('peak weekly volume');
+    const slow = plan(baseState({ athlete: { ...baseState().athlete, peakWeeklyKm: 70, referenceRace: { distanceKm: 10, timeSec: 75 * 60 } }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
+    expect(slow.warnings.find((w) => w.message.includes('longest planned run'))!.message).toContain('hours at your easy pace');
+  });
+
   it('warns on short, ambitious or low-volume plans', () => {
     const short = plan(baseState({ goal: { date: '2026-12-20', distanceKm: 42.195 } }), '2026-11-02');
     expect(short.warnings.some((w) => w.level === 'danger')).toBe(true);

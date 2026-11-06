@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import type { Weekday } from '@/domain/dates';
 import type { Phase } from '@/domain/types';
 import { paceZones } from './paces';
-import { buildWeek, chooseRunDays, distribute, fmtKm, longRunFraction, marathonPaceShare, qualityKinds, structureQuality } from './template';
+import { buildWeek, chooseRunDays, distribute, fmtKm, longRunFraction, marathonLongRunFloor, marathonPaceShare, peakLongRunKm, qualityKinds, structureQuality } from './template';
 import type { WeekTemplateInput } from './template';
 
 const ALL: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
@@ -185,6 +185,22 @@ describe('buildWeek', () => {
     expect(qualityKinds('taper', 1, 5, false, 1, 3)).toEqual(['tempo']);
     expect(qualityKinds('taper', 0, 5, false, 0, 1)).toEqual(['tempo']);
     expect(structureQuality('intervals', 20, 'taper').title).toBe('5 × 1 km intervals');
+  });
+
+  it('applies the marathon floor in the peak phase, never beyond half the week', () => {
+    expect(marathonLongRunFloor(42.195, 'peak', 60, 0)).toBe(28);
+    expect(marathonLongRunFloor(42.195, 'peak', 60, 1)).toBe(30);
+    expect(marathonLongRunFloor(42.195, 'peak', 60, 2)).toBe(30); // half of 60
+    expect(marathonLongRunFloor(42.195, 'peak', 70, 2)).toBe(32);
+    expect(marathonLongRunFloor(42.195, 'peak', 40, 2)).toBe(20);
+    expect(marathonLongRunFloor(42.195, 'build', 70, 2)).toBe(0);
+    expect(marathonLongRunFloor(21.0975, 'peak', 70, 2)).toBe(0);
+    const d = distribute(60, 'peak', 40, 2, 2, 30);
+    expect(d.longKm).toBe(30);
+    expect(distribute(60, 'peak', 26, 2, 2, 30).longKm).toBe(26); // cap still wins
+    expect(peakLongRunKm(60, 42.195)).toBe(30);
+    expect(peakLongRunKm(45, 42.195)).toBe(22.5);
+    expect(peakLongRunKm(60, 21.0975)).toBe(24.5);
   });
 
   it('long-run share falls as volume rises', () => {

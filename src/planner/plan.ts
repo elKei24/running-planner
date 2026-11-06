@@ -13,7 +13,7 @@ import { applyGoalRace, applyRaces } from './events';
 import { estimateFitness } from './fitness';
 import { formatDuration, paceZones, vdotFromRace } from './paces';
 import { periodize } from './periodize';
-import { buildWeek, MAX_LONG_RUN_KM } from './template';
+import { buildWeek, marathonLongRunFloor, MAX_LONG_RUN_KM } from './template';
 import type { WeekTemplateInput } from './template';
 import { computeVolumes } from './volume';
 import type { WeekVolumeInput } from './volume';
@@ -21,7 +21,7 @@ import type { WeekVolumeInput } from './volume';
 export const B_RACE_WEEK_FACTOR = 0.85;
 export const LONG_RUN_FIRST_STEP_KM = 3;
 export const LONG_RUN_WEEKLY_STEP_KM = 2.5;
-export const MAX_LONG_RUN_MINUTES = 180;
+export const MAX_LONG_RUN_MINUTES = 210;
 const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 /**
@@ -97,6 +97,7 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     const phaseOrdinal = i - phases.indexOf(phase);
     const phaseLength = phases.filter((p) => p === phase).length;
     const easyOnly = i < easyOnlyWeeks && phase !== 'taper';
+    const longFloorKm = easyOnly ? 0 : marathonLongRunFloor(state.goal.distanceKm, phase, vol.targetKm * partial, phaseOrdinal);
     const input: WeekTemplateInput = {
       index: i,
       startDate: start,
@@ -109,6 +110,7 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
       availableDays,
       blockedDates,
       longCapKm,
+      longFloorKm,
       paces,
       createdAt: state.createdAt,
       phaseOrdinal,
@@ -138,7 +140,7 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;
   }
 
-  warnings.push(...collectWarnings(state, totalWeeks, fitness.levelKm, paces?.predictedGoalTimeSec, races, blocks, weeks));
+  warnings.push(...collectWarnings(state, totalWeeks, fitness.levelKm, paces?.predictedGoalTimeSec, races, blocks, weeks, timeCapKm));
   return { weeks, warnings, paces, fitness, anchorDate };
 }
 
@@ -161,6 +163,7 @@ function collectWarnings(
   races: RaceEvent[],
   blocks: BlockEvent[],
   weeks: Week[],
+  timeCapKm: number,
 ): PlanWarning[] {
   const out: PlanWarning[] = [];
   if (totalWeeks < 8) {
@@ -193,7 +196,15 @@ function collectWarnings(
   const lastPeak = [...weeks].reverse().find((w) => w.phase === 'peak' || w.phase === 'build');
   const longest = lastPeak ? Math.max(...lastPeak.sessions.map((s) => (s.type === 'long' ? s.distanceKm : 0))) : 0;
   if (lastPeak && longest > 0 && longest < 26 && state.goal.distanceKm > 40) {
-    out.push({ level: 'warn', message: `The longest planned run is ${longest} km. Finishing a marathon strongly usually needs long runs of 28–32 km; there may not be enough weeks to get there safely.` });
+    const peak = state.athlete.peakWeeklyKm;
+    const intro = `The longest planned run is ${longest} km; finishing a marathon strongly usually needs 28–32 km.`;
+    if (timeCapKm < 26 && timeCapKm <= longest + 0.5) {
+      out.push({ level: 'warn', message: `${intro} It is capped at about ${MAX_LONG_RUN_MINUTES / 60} hours at your easy pace. That is a sensible limit for slower runners; as your reference race improves, the cap grows.` });
+    } else if (peak * 0.5 <= longest + 0.5) {
+      out.push({ level: 'warn', message: `${intro} It is limited by your peak weekly volume (${Math.round(peak)} km): a long run should not exceed half the week. Raise peak weekly volume in Settings → Athlete (about 60 km/week allows 30 km) if you can train more.` });
+    } else {
+      out.push({ level: 'warn', message: `${intro} There may not be enough weeks to build up safely; the long run grows by about 2.5 km per week from what you have run recently.` });
+    }
   }
   return out;
 }
