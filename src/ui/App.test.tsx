@@ -10,7 +10,7 @@ const athlete = { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, lo
 describe('App', () => {
   beforeEach(() => {
     cleanup();
-    localStorage.clear();
+    window.localStorage.clear();
     todayDate.value = '2026-11-06';
     resetPlan();
     initStore();
@@ -32,7 +32,7 @@ describe('App', () => {
     expect(state.value!.createdAt).toBe('2026-11-06');
     expect(screen.getByText(/Week 1 of/)).toBeTruthy();
     // Persisted.
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).goal.date).toBe('2027-03-14');
+    expect(JSON.parse(window.localStorage.getItem(STORAGE_KEY)!).goal.date).toBe('2027-03-14');
   });
 
   it('renders the current week with sessions and navigates between weeks', async () => {

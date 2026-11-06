@@ -11,7 +11,10 @@ export interface Storage {
 
 function defaultStorage(): Storage | undefined {
   try {
-    return typeof localStorage !== 'undefined' ? localStorage : undefined;
+    // Prefer the browser's window.localStorage: newer Node versions expose a
+    // global `localStorage` that is undefined unless a storage file is set.
+    const g = globalThis as { window?: { localStorage?: Storage }; localStorage?: Storage };
+    return g.window?.localStorage ?? g.localStorage ?? undefined;
   } catch {
     return undefined;
   }

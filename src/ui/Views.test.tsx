@@ -16,7 +16,7 @@ async function type(el: Element, value: string) {
 describe('views', () => {
   beforeEach(() => {
     cleanup();
-    localStorage.clear();
+    window.localStorage.clear();
     todayDate.value = '2026-11-06';
     resetPlan();
     initStore();
