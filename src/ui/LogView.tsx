@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { formatDate } from '@/domain/dates';
+import { rpeLabel } from '@/domain/rpe';
 import type { LogEntry } from '@/domain/types';
 import { parseActivity } from '@/io/gpx';
 import { formatDuration } from '@/planner/paces';
@@ -63,7 +64,7 @@ export function LogView() {
             <div>
               <strong>{formatDate(e.date, { weekday: true, year: true })}</strong>
               <div class="muted">
-                {e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)}` : ''}${e.rpe ? ` · RPE ${e.rpe}` : ''}`}
+                {e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)}` : ''}${e.rpe ? ` · RPE ${e.rpe} (${rpeLabel(e.rpe).toLowerCase()})` : ''}`}
                 {e.note ? ` · ${e.note}` : ''}
               </div>
             </div>

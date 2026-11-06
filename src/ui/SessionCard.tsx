@@ -1,4 +1,5 @@
 import { formatDate, WEEKDAY_NAMES, weekday } from '@/domain/dates';
+import { rpeLabel } from '@/domain/rpe';
 import type { LogEntry, Session } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
 import { km, paceRange, TYPE_LABEL } from './format';
@@ -50,7 +51,7 @@ export function SessionCard({ session, entries, today, onLog, onExclude }: Sessi
           <div class="meta">
             {entries.map((e) => (
               <div key={e.id}>
-                {e.skipped ? 'Skipped' : `Logged ${km(e.distanceKm)}${e.durationSec ? ` in ${formatDuration(e.durationSec)}` : ''}${e.rpe ? ` · RPE ${e.rpe}` : ''}`}
+                {e.skipped ? 'Skipped' : `Logged ${km(e.distanceKm)}${e.durationSec ? ` in ${formatDuration(e.durationSec)}` : ''}${e.rpe ? ` · RPE ${e.rpe} (${rpeLabel(e.rpe).toLowerCase()})` : ''}`}
                 {e.note ? ` · ${e.note}` : ''}
               </div>
             ))}

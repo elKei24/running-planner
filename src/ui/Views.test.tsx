@@ -33,6 +33,7 @@ describe('views', () => {
     render(<App />);
     expect(screen.getByText(/2 runs|1 runs/)).toBeTruthy();
     expect(screen.getByText(/windy/)).toBeTruthy();
+    expect(screen.getByText(/RPE 5 \(somewhat hard\)/)).toBeTruthy();
     expect(screen.getByText('Skipped')).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getAllByText('Edit')[0]!);

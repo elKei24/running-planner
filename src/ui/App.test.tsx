@@ -57,6 +57,14 @@ describe('App', () => {
       fireEvent.click(buttons[0]!);
     });
     const dialog = await waitFor(() => document.querySelector('dialog')!);
+    // RPE guidance: the options explain each level and the planned type sets an expected range.
+    expect(dialog.textContent).toContain('should feel like');
+    expect([...dialog.querySelectorAll('option')].map((o) => o.textContent)).toContain('7 · Very hard');
+    expect(dialog.querySelector('#rpe-meaning')!.textContent).toContain('conversational');
+    await act(async () => {
+      fireEvent.change(dialog.querySelector('select')!, { target: { value: '8' } });
+    });
+    expect(dialog.querySelector('#rpe-meaning')!.textContent).toContain('Interval effort');
     const distance = dialog.querySelector<HTMLInputElement>('input[type=number]')!;
     await act(async () => {
       fireEvent.input(distance, { target: { value: '7.5' } });

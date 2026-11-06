@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
+import { expectedRpe, RPE_SCALE } from '@/domain/rpe';
 import type { LogEntry, Session } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
 import { logRun, removeLog } from '@/store/state';
@@ -83,12 +84,20 @@ export function LogDialog({ date, session, existing, initial, onClose }: LogDial
             </label>
             <label class="field">
               Effort (RPE 1–10)
-              <select value={rpe} onChange={(e) => setRpe((e.currentTarget as HTMLSelectElement).value)}>
+              {session && expectedRpe(session.type) && (
+                <span class="hint">
+                  A {session.type === 'marathonPace' ? 'marathon-pace' : session.type} session should feel like {expectedRpe(session.type)![0]}–{expectedRpe(session.type)![1]}.
+                </span>
+              )}
+              <select value={rpe} onChange={(e) => setRpe((e.currentTarget as HTMLSelectElement).value)} aria-describedby="rpe-meaning">
                 <option value="">–</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>{n}</option>
+                {RPE_SCALE.map((r) => (
+                  <option key={r.value} value={r.value}>{r.value} · {r.label}</option>
                 ))}
               </select>
+              <span class="hint" id="rpe-meaning">
+                {rpe ? RPE_SCALE.find((r) => String(r.value) === rpe)?.meaning : 'How hard it felt overall. 3 is conversational, 7 is tempo, 10 is all-out.'}
+              </span>
             </label>
           </div>
         )}
