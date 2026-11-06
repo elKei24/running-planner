@@ -25,6 +25,12 @@
 - Session titles and descriptions follow the units preference.
 - Week notes explain every adjustment (step-back, block, race, return-to-running).
 
+## Follow-ups (done)
+
+- Node 26 and the latest dependency majors (see ADR 0003).
+- Custom race distances (e.g. 6 km) for tune-up races, the goal race and the reference race,
+  via a "Custom…" option on every distance picker. The planner never depended on presets.
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.

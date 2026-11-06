@@ -5,6 +5,51 @@ import type { Athlete, Goal } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
 import { DISTANCE_PRESETS } from './format';
 
+/**
+ * Distance picker: the usual race distances plus a "Custom" option that
+ * reveals a free km input. `value` is always the distance in km as a string.
+ */
+export function DistanceField({ value, onChange, label, max }: { value: string; onChange: (km: string) => void; label?: string; max?: number }) {
+  const presets = DISTANCE_PRESETS.filter((p) => max === undefined || p.km <= max);
+  const isPreset = presets.some((p) => String(p.km) === value);
+  const [custom, setCustom] = useState(!isPreset);
+  const selectValue = custom ? 'custom' : value;
+  const onSelect = (e: Event) => {
+    const v = (e.currentTarget as HTMLSelectElement).value;
+    if (v === 'custom') {
+      setCustom(true);
+      if (isPreset) onChange('');
+    } else {
+      setCustom(false);
+      onChange(v);
+    }
+  };
+  return (
+    <div class="row" style={{ gap: 6, flexWrap: 'nowrap' }}>
+      <select value={selectValue} onChange={onSelect} style={{ flex: 1 }} aria-label={label ?? 'Distance'}>
+        {presets.map((p) => (
+          <option key={p.km} value={p.km}>{p.label}</option>
+        ))}
+        <option value="custom">Custom…</option>
+      </select>
+      {custom && (
+        <input
+          type="number"
+          min="0.5"
+          max={max ?? 200}
+          step="any"
+          inputMode="decimal"
+          placeholder="km"
+          value={value}
+          onInput={(e) => onChange((e.currentTarget as HTMLInputElement).value)}
+          aria-label={`${label ?? 'Distance'} in km`}
+          style={{ flex: 1 }}
+        />
+      )}
+    </div>
+  );
+}
+
 export function defaultPeak(weeklyKm: number, daysPerWeek: number): number {
   const byDays: Record<number, number> = { 1: 25, 2: 35, 3: 45, 4: 60, 5: 75, 6: 90, 7: 100 };
   return Math.round(Math.max(byDays[daysPerWeek] ?? 60, weeklyKm * 1.25));
@@ -95,13 +140,9 @@ export function AthleteFields({ value, onChange }: { value: AthleteFormValue; on
       <label class="field">
         Recent race (for paces)
         <span class="hint">Optional. Distance and finish time, e.g. 10 km in 48:30.</span>
-        <div class="row" style={{ gap: 6 }}>
-          <select value={value.refDistanceKm} onChange={set('refDistanceKm')} style={{ flex: 1 }}>
-            {DISTANCE_PRESETS.map((p) => (
-              <option key={p.km} value={p.km}>{p.label}</option>
-            ))}
-          </select>
-          <input type="text" placeholder="h:mm:ss" value={value.refTime} onInput={set('refTime')} style={{ flex: 1 }} aria-label="Reference race time" />
+        <div class="stack" style={{ gap: 6 }}>
+          <DistanceField value={value.refDistanceKm} onChange={(km) => onChange({ ...value, refDistanceKm: km })} label="Reference race distance" />
+          <input type="text" placeholder="h:mm:ss" value={value.refTime} onInput={set('refTime')} aria-label="Reference race time" />
         </div>
       </label>
     </div>
@@ -146,14 +187,10 @@ export function GoalFields({ value, onChange }: { value: GoalFormValue; onChange
         Race date
         <input type="date" value={value.date} onInput={set('date')} required />
       </label>
-      <label class="field">
+      <div class="field">
         Distance
-        <select value={value.distanceKm} onChange={set('distanceKm')}>
-          {DISTANCE_PRESETS.map((p) => (
-            <option key={p.km} value={p.km}>{p.label}</option>
-          ))}
-        </select>
-      </label>
+        <DistanceField value={value.distanceKm} onChange={(km) => onChange({ ...value, distanceKm: km })} label="Race distance" />
+      </div>
       <label class="field">
         Target time
         <span class="hint">Optional, e.g. 3:45:00.</span>

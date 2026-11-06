@@ -4,6 +4,7 @@ import type { Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
 import { addEvent, removeEvent, state, todayDate } from '@/store/state';
 import { DISTANCE_PRESETS } from './format';
+import { DistanceField } from './forms';
 
 type Tab = 'race' | 'block' | 'availability';
 
@@ -81,7 +82,9 @@ function RaceForm() {
     e.preventDefault();
     if (!date) return setError('Pick a date.');
     if (date < todayDate.value) return setError('The race is in the past.');
-    addEvent({ kind: 'race', date, distanceKm: Number(distance), priority, ...(name.trim() ? { name: name.trim() } : {}) });
+    const distanceKm = Number(distance);
+    if (!(distanceKm > 0)) return setError('Enter the race distance in km.');
+    addEvent({ kind: 'race', date, distanceKm, priority, ...(name.trim() ? { name: name.trim() } : {}) });
     setDate('');
     setName('');
     setError(null);
@@ -90,12 +93,10 @@ function RaceForm() {
     <form onSubmit={submit} class="stack">
       <div class="grid">
         <label class="field">Date<input type="date" value={date} onInput={(e) => setDate((e.currentTarget as HTMLInputElement).value)} required /></label>
-        <label class="field">
+        <div class="field">
           Distance
-          <select value={distance} onChange={(e) => setDistance((e.currentTarget as HTMLSelectElement).value)}>
-            {DISTANCE_PRESETS.filter((p) => p.km < 42).map((p) => <option key={p.km} value={p.km}>{p.label}</option>)}
-          </select>
-        </label>
+          <DistanceField value={distance} onChange={setDistance} label="Tune-up race distance" max={42} />
+        </div>
         <label class="field">
           How seriously?
           <select value={priority} onChange={(e) => setPriority((e.currentTarget as HTMLSelectElement).value as 'B' | 'C')}>

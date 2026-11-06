@@ -70,6 +70,25 @@ describe('views', () => {
     await waitFor(() => expect(state.value!.events).toHaveLength(1));
     expect(state.value!.events[0]).toMatchObject({ kind: 'race', date: '2027-01-24', name: 'Winter Half' });
 
+    // Custom distance: pick "Custom…" and type 6 km.
+    await type(document.querySelector('input[type=date]')!, '2027-02-07');
+    await type(screen.getByLabelText('Tune-up race distance'), 'custom');
+    await type(screen.getByLabelText('Tune-up race distance in km'), '6');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add race'));
+    });
+    await waitFor(() => expect(state.value!.events).toHaveLength(2));
+    expect(state.value!.events[1]).toMatchObject({ kind: 'race', date: '2027-02-07', distanceKm: 6 });
+    expect(screen.getByText(/6 km race/)).toBeTruthy();
+    // An empty custom distance is rejected.
+    await type(document.querySelector('input[type=date]')!, '2027-02-14');
+    await type(screen.getByLabelText('Tune-up race distance in km'), '');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Add race'));
+    });
+    expect(screen.getByText('Enter the race distance in km.')).toBeTruthy();
+    await type(screen.getByLabelText('Tune-up race distance'), '10');
+
     // Past date is rejected.
     await type(document.querySelector('input[type=date]')!, '2020-01-01');
     await act(async () => {
@@ -87,8 +106,8 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Block these days'));
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(2));
-    expect(state.value!.events[1]).toMatchObject({ kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' });
+    await waitFor(() => expect(state.value!.events).toHaveLength(3));
+    expect(state.value!.events[2]).toMatchObject({ kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' });
 
     // Availability form.
     await act(async () => {
@@ -97,8 +116,8 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(3));
-    expect(state.value!.events[2]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
+    await waitFor(() => expect(state.value!.events).toHaveLength(4));
+    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
     // Saving again for the same week replaces it.
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));
@@ -110,7 +129,29 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getAllByText('Remove')[0]!);
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(2));
+    await waitFor(() => expect(state.value!.events).toHaveLength(3));
+  });
+
+  it('settings accept a custom goal and reference distance', async () => {
+    navigate('settings');
+    render(<App />);
+    const goalForm = document.querySelectorAll('form')[0]!;
+    await type(screen.getByLabelText('Race distance'), 'custom');
+    await type(screen.getByLabelText('Race distance in km'), '50');
+    await act(async () => {
+      fireEvent.submit(goalForm);
+    });
+    await waitFor(() => expect(state.value!.goal.distanceKm).toBe(50));
+    // The select shows "Custom…" for a non-preset distance after remount.
+    expect((screen.getByLabelText('Race distance') as HTMLSelectElement).value).toBe('custom');
+    const athleteForm = document.querySelectorAll('form')[1]!;
+    await type(screen.getByLabelText('Reference race distance'), 'custom');
+    await type(screen.getByLabelText('Reference race distance in km'), '6');
+    await type(athleteForm.querySelectorAll('input[type=text]')[0]!, '28:30');
+    await act(async () => {
+      fireEvent.submit(athleteForm);
+    });
+    await waitFor(() => expect(state.value!.athlete.referenceRace).toEqual({ distanceKm: 6, timeSec: 1710 }));
   });
 
   it('settings view edits goal and athlete and exports', async () => {
