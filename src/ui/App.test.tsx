@@ -51,10 +51,12 @@ describe('App', () => {
 
   it('logs a run from a session card and reflects it', async () => {
     createPlan(athlete, { date: '2027-03-14', distanceKm: 42.195 });
+    // Plan created on Friday; it is now Sunday, the long-run day, so that card has a Log button.
+    todayDate.value = '2026-11-08';
     render(<App />);
     const buttons = screen.getAllByRole('button', { name: 'Log' });
     await act(async () => {
-      fireEvent.click(buttons[0]!);
+      fireEvent.click(buttons[buttons.length - 1]!);
     });
     const dialog = await waitFor(() => document.querySelector('dialog')!);
     // RPE guidance: the options explain each level and the planned type sets an expected range.

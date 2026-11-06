@@ -15,7 +15,8 @@ Every week's long run has an evidence-based floor: the recent longest run (decla
 the longest run in the last four logged weeks), limited to 60 % of that week's volume. Step-back,
 blocked and post-layoff weeks therefore still shrink it, and the growth, time and 35 km caps still
 apply on top. The partial first week measures the share against the full week so the first long
-run is not cut.
+run is not cut, and when a tiny week cannot fit both the long run and a quality session, the
+quality session is dropped rather than the long run shortened.
 
 ## Consequences
 

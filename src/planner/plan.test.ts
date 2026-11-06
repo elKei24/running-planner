@@ -153,9 +153,11 @@ describe('plan', () => {
       const long = w.sessions.find((x) => x.type === 'long');
       if (long) expect(long.distanceKm).toBeGreaterThanOrEqual(Math.min(19, w.targetKm * 0.6) - 0.5);
     }
-    // Created mid-week: the partial week still carries the full long run.
-    const partial = plan(baseState({ createdAt: '2026-11-04', athlete: { ...baseState().athlete, weeklyKmRecent: 40, longestRecentRunKm: 19, daysPerWeek: 4, peakWeeklyKm: 60 } }), '2026-11-04');
-    expect(partial.weeks[0]!.sessions.find((x) => x.type === 'long')!.distanceKm).toBe(19);
+    // Created mid-week or on a Friday: the partial week still carries the full long run.
+    for (const createdAt of ['2026-11-04', '2026-11-06']) {
+      const partial = plan(baseState({ createdAt, athlete: { ...baseState().athlete, weeklyKmRecent: 40, longestRecentRunKm: 19, daysPerWeek: 4, peakWeeklyKm: 60 } }), createdAt);
+      expect(partial.weeks[0]!.sessions.find((x) => x.type === 'long')!.distanceKm).toBe(19);
+    }
   });
 
   it('reaches 28–32 km long runs at 60 km/week given a long horizon', () => {

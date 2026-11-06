@@ -225,12 +225,16 @@ export function distribute(
   while (easyCount > 0 && remaining / easyCount < MIN_EASY_RUN_KM) easyCount--;
 
   if (remaining < 0) {
-    // Tiny week: scale the hard sessions down to fit.
-    const hard = longKm + sum(qualityKm);
-    const scale = hard > 0 ? target / hard : 0;
-    longKm *= scale;
-    qualityKm = qualityKm.map((q) => q * scale);
-    remaining = 0;
+    // Tiny week (partial first week, heavy block): drop quality sessions before
+    // touching the long run, which is a single-session commitment.
+    while (remaining < 0 && qualityKm.length > 0) {
+      qualityKm = qualityKm.slice(0, -1);
+      remaining = target - longKm - sum(qualityKm);
+    }
+    if (remaining < 0) {
+      longKm = Math.min(longKm, Math.max(target, longFloorKm));
+      remaining = 0;
+    }
   } else if (easyCount === 0 && remaining > 0) {
     // Nowhere to put the remainder: let the long run absorb what the cap allows.
     const extra = Math.min(remaining, cap - longKm);
@@ -358,6 +362,9 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
       };
     }
     const qi = roles.quality.indexOf(d as Weekday);
+    if (qi >= 0 && qi >= dist.qualityKm.length) {
+      return make(date, 'rest', 0, phase, 'Rest', 'No running. Walk, stretch, sleep.');
+    }
     if (qi >= 0) {
       const kind = kinds[qi] ?? 'tempo';
       const s = structureQuality(kind, dist.qualityKm[qi] ?? MIN_QUALITY_RUN_KM, phase, units);

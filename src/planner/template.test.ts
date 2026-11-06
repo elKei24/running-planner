@@ -197,6 +197,20 @@ describe('buildWeek', () => {
     expect(Math.abs(total - 40)).toBeLessThan(1.5);
   });
 
+  it('drops quality before shrinking the long run in a tiny week', () => {
+    // 17 km budget, 19 km established long run: the long run survives, the tempo goes.
+    const d = distribute(17, 'base', 22, 1, 1, 19);
+    expect(d.longKm).toBe(19);
+    expect(d.qualityKm).toEqual([]);
+    expect(d.easyKm).toEqual([]);
+    // Without a floor, a tiny week still cannot exceed its budget.
+    const tiny = distribute(8, 'base', 22, 1, 1, 0);
+    expect(tiny.longKm + tiny.qualityKm.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(8.5);
+    const week = buildWeek(input({ targetKm: 17, longCapKm: 22, longFloorKm: 19, daysPerWeek: 4 }));
+    expect(week.find((s) => s.type === 'long')!.distanceKm).toBe(19);
+    expect(week.filter((s) => s.distanceKm > 0)).toHaveLength(1);
+  });
+
   it('applies the marathon floor in the peak phase, never beyond half the week', () => {
     expect(marathonLongRunFloor(42.195, 'peak', 60, 0)).toBe(28);
     expect(marathonLongRunFloor(42.195, 'peak', 60, 1)).toBe(30);
