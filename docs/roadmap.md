@@ -17,6 +17,14 @@
 - Today card and a plan-health card (adherence over the last four weeks, fitness trend) on the week view.
 - ICS export honours units and includes distances.
 
+## Iteration 3 – UX and training-science alignment (done)
+
+- Easy-only weeks after a layoff (ADR 0010).
+- Long-run share scales with weekly volume (ADR 0011).
+- Marathon-pace progression in peak long runs; intervals kept in the first taper week (ADR 0012).
+- Session titles and descriptions follow the units preference.
+- Week notes explain every adjustment (step-back, block, race, return-to-running).
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.

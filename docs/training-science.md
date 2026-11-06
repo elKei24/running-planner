@@ -19,6 +19,12 @@ than a finding, it says so. Sources are listed at the end.
   week with no running. One week off → about 75 % of the previous level; two weeks → about 50 %.
   These are the usual return-to-running numbers after a short layoff.
 
+## Returning after a layoff
+
+- A completed week with less than half the expected load counts as a layoff week. After one, the
+  next week has no quality sessions; after two or more, the next two weeks are easy only
+  (`layoffWeeks`, ADR 0010). Volume is handled separately by the level response.
+
 ## Intensity distribution
 
 - **Roughly 80/20.** At most two quality sessions per week and only when the athlete runs five or
@@ -27,7 +33,8 @@ than a finding, it says so. Sources are listed at the end.
   polarised / pyramidal distributions in endurance athletes is the basis.
 - **Session types by phase.** Base: one controlled tempo. Build: threshold tempo and 1 km VO2max
   intervals alternating week to week. Peak: marathon-pace runs and threshold, with the long run
-  finishing at marathon pace every other week. Taper: a short tempo to keep the legs sharp.
+  finishing at marathon pace every other week. Taper: a short interval session (≤ 5 × 1 km) in the
+  first taper week, then a short tempo, so intensity is kept while volume drops.
 - **Paces from Daniels' VDOT** (Daniels & Gilbert 1979). Easy 62–74 % VO2max, threshold 83–88 %,
   intervals 95–100 %, marathon pace from the predicted marathon time. These are the textbook zones;
   the marathon zone is ±2 % around the equal-effort prediction.
@@ -36,8 +43,12 @@ than a finding, it says so. Sources are listed at the end.
 
 ## Long runs
 
-- **30–38 % of weekly volume** depending on phase (`longRunFraction`), capped at 35 km and at about
-  three hours at easy pace. Longer than ~3 h adds damage faster than fitness for most amateurs.
+- **Share of weekly volume depends on the volume** (`longRunFraction`): 45 % at 40 km/week down to
+  33 % at 100 km/week in the peak phase, scaled down in base/build/taper. Capped at 35 km and at
+  about three hours at easy pace. Longer than ~3 h adds damage faster than fitness for most
+  amateurs. See ADR 0011 for the reasoning and the published plans it was checked against.
+- **Marathon-pace finishes progress** through the peak phase: every other long run (and the last
+  one) ends with 30 % → 40 % → 50 % of its distance at goal pace (`marathonPaceShare`, ADR 0012).
 - **Growth capped relative to what was recently done**: the first long run is at most 3 km longer
   than the longest run of the last four weeks, then +2.5 km per ramp week. This is the adaptive
   counterpart of the volume rule and is what prevents a 30 km long run appearing after a month off.

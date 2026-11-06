@@ -88,6 +88,30 @@ describe('plan', () => {
     expect(weekKm(after, peakIdx)).toBeGreaterThan(70);
   });
 
+  it('schedules easy-only weeks after a layoff', () => {
+    const original = plan(baseState(), '2026-11-02');
+    const log: LogEntry[] = [];
+    for (const x of original.weeks[0]!.sessions) if (x.distanceKm > 0) log.push({ id: x.id, date: x.date, distanceKm: x.distanceKm });
+    const isQuality = (t: string) => ['tempo', 'intervals', 'marathonPace'].includes(t);
+    // One week followed, one week skipped → first week easy only.
+    const one = plan(baseState({ log }), '2026-11-16');
+    expect(one.fitness.layoffWeeks).toBe(1);
+    expect(one.weeks[0]!.sessions.some((x) => isQuality(x.type))).toBe(false);
+    expect(one.weeks[0]!.notes.join(' ')).toContain('easy running only');
+    expect(one.weeks[1]!.sessions.some((x) => isQuality(x.type))).toBe(true);
+    // Two weeks skipped → two easy weeks.
+    const two = plan(baseState({ log }), '2026-11-23');
+    expect(two.fitness.layoffWeeks).toBe(2);
+    expect(two.weeks[1]!.sessions.some((x) => isQuality(x.type))).toBe(false);
+    expect(two.weeks[2]!.sessions.some((x) => isQuality(x.type))).toBe(true);
+  });
+
+  it('uses the units preference in generated titles', () => {
+    const s = plan(baseState({ prefs: { units: 'mi' } }), '2026-11-02');
+    expect(s.weeks[5]!.sessions.find((x) => x.type === 'long')!.title).toMatch(/mi$/);
+    expect(s.weeks[s.weeks.length - 1]!.sessions.find((x) => x.title.startsWith('Shakeout'))!.title).toMatch(/mi$/);
+  });
+
   it('inserts a tune-up race with a mini taper and recovery', () => {
     const s = plan(
       baseState({ events: [{ id: 'hm', kind: 'race', date: '2027-01-24', distanceKm: 21.0975, priority: 'B', name: 'Winter Half' }] }),

@@ -151,6 +151,8 @@ export interface FitnessEstimate {
   history: WeeklyLoad[];
   /** How the level was determined. */
   source: 'declared' | 'log';
+  /** Consecutive completed weeks, ending last week, with less than half the expected load. */
+  layoffWeeks: number;
 }
 
 export type WarningLevel = 'info' | 'warn' | 'danger';

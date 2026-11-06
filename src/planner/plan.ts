@@ -70,6 +70,9 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
   // Long-run cap grows a little every ramp week, and never exceeds ~3 hours.
   const timeCapKm = paces ? (MAX_LONG_RUN_MINUTES * 60) / ((paces.easy.minSecPerKm + paces.easy.maxSecPerKm) / 2) : MAX_LONG_RUN_KM;
   let rampIndex = 0;
+  const units = state.prefs.units;
+  // Return to running after a layoff: one easy-only week, two after a longer break.
+  const easyOnlyWeeks = Math.min(2, fitness.layoffWeeks);
   const weeks: Week[] = phases.map((phase, i) => {
     const start = weekStarts[i]!;
     const vol = volumes[i]!;
@@ -91,6 +94,9 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     const isRaceWeek = startOfWeek(state.goal.date) === start;
     // The week the plan was created in is usually partial: pro-rate its volume.
     const partial = start === createdWeek ? (7 - weekday(state.createdAt)) / 7 : 1;
+    const phaseOrdinal = i - phases.indexOf(phase);
+    const phaseLength = phases.filter((p) => p === phase).length;
+    const easyOnly = i < easyOnlyWeeks && phase !== 'taper';
     const input: WeekTemplateInput = {
       index: i,
       startDate: start,
@@ -105,9 +111,14 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
       longCapKm,
       paces,
       createdAt: state.createdAt,
+      phaseOrdinal,
+      phaseLength,
+      easyOnly,
+      units,
     };
     const sessions = buildWeek(input);
     const notes: string[] = [];
+    if (easyOnly) notes.push(fitness.layoffWeeks >= 2 ? 'Back after a break: easy running only while the body re-adapts.' : 'Light week last week: easy running only, intensity returns next week.');
     if (vin.isStepBack) notes.push('Step-back week: lower volume so the previous weeks can sink in.');
     if (phase === 'taper' && !isRaceWeek) notes.push('Taper: volume drops, intensity stays. Trust the work.');
     if (vin.blockedDays > 0) notes.push(`${vin.blockedDays} day${vin.blockedDays > 1 ? 's' : ''} blocked this week; volume reduced.`);
@@ -119,9 +130,9 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
   // Overlays operate on the flat date → session map.
   const map = new Map<LocalDate, Session>();
   for (const w of weeks) for (const s of w.sessions) map.set(s.date, s);
-  applyRaces(map, races, state.createdAt, paces);
+  applyRaces(map, races, state.createdAt, paces, units);
   const raceWeek = weeks[weeks.length - 1]!;
-  applyGoalRace(map, state.goal, raceWeek.targetKm, state.athlete.daysPerWeek, new Set(blockedByDate.keys()), state.createdAt, paces);
+  applyGoalRace(map, state.goal, raceWeek.targetKm, state.athlete.daysPerWeek, new Set(blockedByDate.keys()), state.createdAt, paces, units);
   for (const w of weeks) {
     w.sessions = w.sessions.map((s) => map.get(s.date) ?? s);
     w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;

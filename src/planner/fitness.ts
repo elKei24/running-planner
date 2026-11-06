@@ -56,6 +56,7 @@ export function estimateFitness(state: PlannerState, anchorDate: LocalDate): Fit
   const history = weeklyLoads(state.log, baselineWeek, anchorDate);
 
   let level = Math.max(0, state.athlete.weeklyKmRecent);
+  let layoffWeeks = 0;
   for (const week of history) {
     // The baseline week may be partial: compare against a pro-rated level.
     let fraction = 1;
@@ -67,6 +68,7 @@ export function estimateFitness(state: PlannerState, anchorDate: LocalDate): Fit
     const ratio = expected > 0 ? week.km / expected : week.km > 0 ? 1 : 0;
     level *= levelResponse(ratio);
     if (expected === 0 && week.km > 0) level = Math.max(level, week.km);
+    layoffWeeks = ratio < 0.5 && expected > 0 ? layoffWeeks + 1 : 0;
   }
 
   const recent = history.slice(-4);
@@ -83,6 +85,7 @@ export function estimateFitness(state: PlannerState, anchorDate: LocalDate): Fit
     longRunKm: round1(longRunKm),
     history,
     source: history.length === 0 ? 'declared' : 'log',
+    layoffWeeks,
   };
 }
 

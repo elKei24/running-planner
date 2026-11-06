@@ -76,11 +76,15 @@ describe('estimateFitness', () => {
     expect(f.history.map((w) => w.expectedKm)).toEqual([40, 40]);
   });
 
-  it('drops the level after a week with no running, then two', () => {
+  it('drops the level after a week with no running, then two, and counts layoff weeks', () => {
     const one = estimateFitness(state(), '2026-10-12');
     expect(one.levelKm).toBeCloseTo(28, 0); // 40 * 0.7
+    expect(one.layoffWeeks).toBe(1);
     const two = estimateFitness(state(), '2026-10-19');
     expect(two.levelKm).toBeCloseTo(19.6, 0);
+    expect(two.layoffWeeks).toBe(2);
+    const back = estimateFitness(state({ log: [run('2026-10-20', 10), run('2026-10-22', 10)] }), '2026-10-26');
+    expect(back.layoffWeeks).toBe(0);
   });
 
   it('raises the level by at most 10 % per week when running more than planned', () => {

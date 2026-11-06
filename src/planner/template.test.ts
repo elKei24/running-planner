@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import type { Weekday } from '@/domain/dates';
 import type { Phase } from '@/domain/types';
 import { paceZones } from './paces';
-import { buildWeek, chooseRunDays, distribute, qualityKinds, structureQuality } from './template';
+import { buildWeek, chooseRunDays, distribute, fmtKm, longRunFraction, marathonPaceShare, qualityKinds, structureQuality } from './template';
 import type { WeekTemplateInput } from './template';
 
 const ALL: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
@@ -64,7 +64,7 @@ describe('distribute', () => {
     const d = distribute(50, 'build', 30, 2, 2);
     const total = d.longKm + d.qualityKm.reduce((a, b) => a + b, 0) + d.easyKm.reduce((a, b) => a + b, 0);
     expect(Math.abs(total - 50)).toBeLessThan(1);
-    expect(d.longKm).toBeCloseTo(17.5, 1);
+    expect(d.longKm).toBeCloseTo(19.5, 1); // 50 km build week → 0.43 × 0.9 ≈ 39 %
     for (const k of [...d.qualityKm, ...d.easyKm]) expect(k).toBeLessThanOrEqual(d.longKm);
   });
 
@@ -150,11 +150,48 @@ describe('buildWeek', () => {
     expect(week.find((s) => s.type === 'rest')!.pace).toBeUndefined();
   });
 
-  it('adds marathon-pace finishes to peak long runs on alternate weeks', () => {
-    const odd = buildWeek(input({ phase: 'peak', index: 13, targetKm: 70 })).find((s) => s.type === 'long')!;
-    expect(odd.description).toContain('marathon pace');
-    const even = buildWeek(input({ phase: 'peak', index: 12, targetKm: 70 })).find((s) => s.type === 'long')!;
-    expect(even.description).not.toContain('marathon pace');
+  it('adds progressing marathon-pace finishes to peak long runs on alternate weeks', () => {
+    const second = buildWeek(input({ phase: 'peak', index: 13, targetKm: 70, phaseOrdinal: 1, phaseLength: 3 })).find((s) => s.type === 'long')!;
+    expect(second.description).toContain('marathon pace');
+    const first = buildWeek(input({ phase: 'peak', index: 12, targetKm: 70, phaseOrdinal: 0, phaseLength: 3 })).find((s) => s.type === 'long')!;
+    expect(first.description).not.toContain('marathon pace');
+    const last = buildWeek(input({ phase: 'peak', index: 14, targetKm: 70, phaseOrdinal: 2, phaseLength: 3 })).find((s) => s.type === 'long')!;
+    expect(last.description).toContain('marathon pace');
+    expect(marathonPaceShare(0, 3)).toBe(0);
+    expect(marathonPaceShare(1, 3)).toBeCloseTo(0.3);
+    expect(marathonPaceShare(2, 3)).toBeCloseTo(0.4);
+    expect(marathonPaceShare(5, 6)).toBeCloseTo(0.5);
+    expect(marathonPaceShare(0, 1)).toBeCloseTo(0.3);
+  });
+
+  it('runs easy only when asked (return to running)', () => {
+    const week = buildWeek(input({ easyOnly: true, targetKm: 40 }));
+    expect(week.some((s) => ['tempo', 'intervals', 'marathonPace'].includes(s.type))).toBe(false);
+    expect(week.find((s) => s.type === 'long')!.description).toContain('All easy');
+    expect(week.filter((s) => s.distanceKm > 0)).toHaveLength(5);
+  });
+
+  it('writes titles and descriptions in miles when asked', () => {
+    const week = buildWeek(input({ units: 'mi' }));
+    expect(week.find((s) => s.type === 'long')!.title).toMatch(/Long run [\d.]+ mi/);
+    expect(week.find((s) => s.type === 'tempo')!.description).toContain('mi warm-up');
+    expect(fmtKm(1.609344, 'mi')).toBe('1 mi');
+    expect(fmtKm(8, 'km')).toBe('8 km');
+  });
+
+  it('keeps a short interval session in the first taper week only', () => {
+    expect(qualityKinds('taper', 0, 5, false, 0, 3)).toEqual(['intervals']);
+    expect(qualityKinds('taper', 1, 5, false, 1, 3)).toEqual(['tempo']);
+    expect(qualityKinds('taper', 0, 5, false, 0, 1)).toEqual(['tempo']);
+    expect(structureQuality('intervals', 20, 'taper').title).toBe('5 × 1 km intervals');
+  });
+
+  it('long-run share falls as volume rises', () => {
+    expect(longRunFraction('peak', 40)).toBeCloseTo(0.45);
+    expect(longRunFraction('peak', 70)).toBeCloseTo(0.39);
+    expect(longRunFraction('peak', 100)).toBeCloseTo(0.33);
+    expect(longRunFraction('peak', 200)).toBeCloseTo(0.3);
+    expect(longRunFraction('base', 60)).toBeLessThan(longRunFraction('peak', 60));
   });
 
   it('honours availability overrides', () => {

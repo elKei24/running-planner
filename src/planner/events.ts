@@ -1,7 +1,8 @@
 import { addDays, startOfWeek } from '@/domain/dates';
 import type { LocalDate } from '@/domain/dates';
-import type { Goal, PaceZones, RaceEvent, Session } from '@/domain/types';
+import type { Goal, PaceZones, RaceEvent, Session, Units } from '@/domain/types';
 import { racePace } from './paces';
+import { fmtKm } from './template';
 
 export type SessionMap = Map<LocalDate, Session>;
 
@@ -18,27 +19,28 @@ function isQuality(s: Session | undefined): boolean {
   return !!s && (s.type === 'tempo' || s.type === 'intervals' || s.type === 'marathonPace');
 }
 
-function toEasy(s: Session, km: number, why: string, title?: string): Session {
+function toEasy(s: Session, km: number, why: string, title?: string, units: Units = 'km'): Session {
   const d = Math.round(km * 2) / 2;
   return {
     ...s,
     id: `${s.date}-easy`,
     type: 'easy',
     distanceKm: d,
-    title: title ?? `Easy run ${d} km`,
+    title: title ?? `Easy run ${fmtKm(d, units)}`,
     description: `${why} Conversational pace.`,
     adjusted: true,
   };
 }
 
 /** Overlay tune-up races onto the generated sessions (mutates the map). */
-export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: LocalDate, paces?: PaceZones): void {
+export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: LocalDate, paces?: PaceZones, units: Units = 'km'): void {
   const sorted = [...races].sort((a, b) => (a.date < b.date ? -1 : 1));
   const get = (date: LocalDate) => (date < notBefore ? undefined : sessions.get(date));
+  const easy = (s: Session, km: number, why: string, title?: string) => toEasy(s, km, why, title, units);
   for (const race of sorted) {
     const existing = get(race.date);
     if (!existing) continue; // outside the plan window
-    const label = race.name ?? `${formatKm(race.distanceKm)} race`;
+    const label = race.name ?? `${formatKm(race.distanceKm, units)} race`;
     const pace = paces ? racePace(paces.vdot, race.distanceKm) : undefined;
     sessions.set(race.date, {
       id: `${race.date}-race`,
@@ -60,19 +62,19 @@ export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: 
       // Mini taper: three easier days before.
       const dayBefore = get(addDays(race.date, -1));
       if (isRun(dayBefore)) {
-        sessions.set(dayBefore.date, toEasy(dayBefore, Math.min(dayBefore.distanceKm, 4), 'Shakeout before tomorrow\'s race.', 'Shakeout jog'));
+        sessions.set(dayBefore.date, easy(dayBefore, Math.min(dayBefore.distanceKm, 4), 'Shakeout before tomorrow\'s race.', 'Shakeout jog'));
       }
       for (const back of [2, 3]) {
         const s = get(addDays(race.date, -back));
         if (!isRun(s)) continue;
         if (isQuality(s) || s.type === 'long') {
-          sessions.set(s.date, toEasy(s, s.distanceKm * (back === 2 ? 0.6 : 0.7), 'Easy ahead of the race.'));
+          sessions.set(s.date, easy(s, s.distanceKm * (back === 2 ? 0.6 : 0.7), 'Easy ahead of the race.'));
         }
       }
     } else {
       const dayBefore = get(addDays(race.date, -1));
       if (dayBefore && isQuality(dayBefore)) {
-        sessions.set(dayBefore.date, toEasy(dayBefore, dayBefore.distanceKm, 'Easy before tomorrow\'s race.'));
+        sessions.set(dayBefore.date, easy(dayBefore, dayBefore.distanceKm, 'Easy before tomorrow\'s race.'));
       }
     }
 
@@ -83,14 +85,14 @@ export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: 
       if (!isRun(s)) continue;
       if (k === 1) {
         sessions.set(s.date, {
-          ...toEasy(s, Math.min(s.distanceKm, 6), 'Recovery after the race.', 'Recovery jog'),
+          ...easy(s, Math.min(s.distanceKm, 6), 'Recovery after the race.', 'Recovery jog'),
           id: `${s.date}-recovery`,
           type: 'recovery',
         });
       } else if (k <= 2 && s.type === 'long') {
-        sessions.set(s.date, toEasy(s, s.distanceKm * 0.5, 'Shortened after the race.'));
+        sessions.set(s.date, easy(s, s.distanceKm * 0.5, 'Shortened after the race.'));
       } else if (isQuality(s)) {
-        sessions.set(s.date, toEasy(s, s.distanceKm, 'Still recovering from the race: no hard running.'));
+        sessions.set(s.date, easy(s, s.distanceKm, 'Still recovering from the race: no hard running.'));
       } else if (s.type === 'long') {
         sessions.set(s.date, { ...s, description: 'Easy only, still recovering from the race. No marathon-pace work.', adjusted: true });
       }
@@ -117,6 +119,7 @@ export function applyGoalRace(
   blocked: Set<LocalDate>,
   notBefore: LocalDate,
   paces?: PaceZones,
+  units: Units = 'km',
 ): void {
   const raceDay = sessions.get(goal.date);
   if (!raceDay) return;
@@ -154,7 +157,7 @@ export function applyGoalRace(
       date,
       type: p.type,
       distanceKm: p.type === 'rest' ? 0 : km,
-      title: p.type === 'rest' ? p.title : `${p.title} ${km} km`,
+      title: p.type === 'rest' ? p.title : `${p.title} ${fmtKm(km, units)}`,
       description: p.description,
       phase: 'taper',
       adjusted: true,
@@ -199,8 +202,8 @@ function sessionPace(type: Session['type'], paces: PaceZones | undefined, goalPa
   return undefined;
 }
 
-function formatKm(km: number): string {
+function formatKm(km: number, units: Units): string {
   if (Math.abs(km - 42.195) < 0.01) return 'Marathon';
   if (Math.abs(km - 21.0975) < 0.01) return 'Half marathon';
-  return `${km} km`;
+  return fmtKm(km, units);
 }
