@@ -7,15 +7,19 @@ export interface LogDialogProps {
   date: string;
   session?: Session;
   existing?: LogEntry;
+  /** Pre-filled values, e.g. from an imported GPX file. */
+  initial?: { distanceKm?: number; durationSec?: number; note?: string };
   onClose: () => void;
 }
 
-export function LogDialog({ date, session, existing, onClose }: LogDialogProps) {
+export function LogDialog({ date, session, existing, initial, onClose }: LogDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [distance, setDistance] = useState(existing ? String(existing.distanceKm) : session && session.distanceKm > 0 ? String(session.distanceKm) : '');
-  const [duration, setDuration] = useState(existing?.durationSec ? formatDuration(existing.durationSec) : '');
+  const [distance, setDistance] = useState(
+    existing ? String(existing.distanceKm) : initial?.distanceKm ? String(initial.distanceKm) : session && session.distanceKm > 0 ? String(session.distanceKm) : '',
+  );
+  const [duration, setDuration] = useState(existing?.durationSec ? formatDuration(existing.durationSec) : initial?.durationSec ? formatDuration(initial.durationSec) : '');
   const [rpe, setRpe] = useState(existing?.rpe ? String(existing.rpe) : '');
-  const [note, setNote] = useState(existing?.note ?? '');
+  const [note, setNote] = useState(existing?.note ?? initial?.note ?? '');
   const [skipped, setSkipped] = useState(existing?.skipped ?? false);
   const [error, setError] = useState<string | null>(null);
 

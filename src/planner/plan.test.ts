@@ -6,7 +6,7 @@ import { plan } from './plan';
 
 function baseState(partial: Partial<PlannerState> = {}): PlannerState {
   return {
-    version: 1,
+    version: 2,
     createdAt: '2026-11-02',
     athlete: {
       weeklyKmRecent: 40,
@@ -19,6 +19,7 @@ function baseState(partial: Partial<PlannerState> = {}): PlannerState {
     goal: { date: '2027-03-14', distanceKm: 42.195, targetTimeSec: 3 * 3600 + 45 * 60 },
     events: [],
     log: [],
+    prefs: { units: 'km' },
     ...partial,
   };
 }

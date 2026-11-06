@@ -9,8 +9,8 @@ type Migration = (raw: Record<string, unknown>) => Record<string, unknown>;
  * JSON object at version n and returns it at version n+1. Keep them pure.
  */
 export const migrations: Record<number, Migration> = {
-  // Example for the future:
-  // 1: (raw) => ({ ...raw, version: 2, athlete: { ...(raw.athlete as object), newField: 0 } }),
+  // v2: display preferences (units) live in the state document.
+  1: (raw) => ({ ...raw, version: 2, prefs: { units: 'km' } }),
 };
 
 /** Bring any persisted/imported document up to the current schema and validate it. */

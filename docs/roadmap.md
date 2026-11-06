@@ -9,9 +9,13 @@
 - PWA manifest + service worker. CI (typecheck, lint, test, build) and GitHub Pages deployment.
 - Docs: architecture, training science, ADRs.
 
-## Iteration 2 – full version
+## Iteration 2 – full version (done)
 
-See the git history and ADRs 0007+ for what landed.
+- Units preference (km/mi) in the state document; schema v2 and the first migration (ADR 0007).
+- GPX/TCX import to pre-fill a log entry (ADR 0008).
+- "Can't run this day" on any future session, implemented as an availability override (ADR 0009).
+- Today card and a plan-health card (adherence over the last four weeks, fitness trend) on the week view.
+- ICS export honours units and includes distances.
 
 ## Open ideas (not scheduled)
 

@@ -1,8 +1,8 @@
 import { computed, effect, signal } from '@preact/signals';
-import { startOfWeek, today } from '@/domain/dates';
-import type { LocalDate } from '@/domain/dates';
+import { startOfWeek, today, weekday } from '@/domain/dates';
+import type { LocalDate, Weekday } from '@/domain/dates';
 import { SCHEMA_VERSION } from '@/domain/types';
-import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Schedule } from '@/domain/types';
+import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Schedule, Units } from '@/domain/types';
 import { plan } from '@/planner/plan';
 import { clearState, loadState, saveState } from './persist';
 
@@ -57,7 +57,7 @@ function update(fn: (s: PlannerState) => PlannerState): void {
 }
 
 export function createPlan(athlete: Athlete, goal: Goal): void {
-  state.value = { version: SCHEMA_VERSION, createdAt: todayDate.value, athlete, goal, events: [], log: [] };
+  state.value = { version: SCHEMA_VERSION, createdAt: todayDate.value, athlete, goal, events: [], log: [], prefs: { units: 'km' } };
   loadError.value = null;
 }
 
@@ -91,6 +91,27 @@ export function addEvent(event: NewEvent): string {
 
 export function removeEvent(id: string): void {
   update((s) => ({ ...s, events: s.events.filter((e) => e.id !== id) }));
+}
+
+export function setUnits(units: Units): void {
+  update((s) => ({ ...s, prefs: { ...s.prefs, units } }));
+}
+
+const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
+
+/**
+ * "I can't run on this day": records an availability override for that week
+ * without the given weekday. The planner re-plans the week with the days left.
+ */
+export function excludeDay(date: LocalDate): void {
+  const weekOf = startOfWeek(date);
+  const day = weekday(date);
+  update((s) => {
+    const existing = s.events.find((e) => e.kind === 'availability' && e.weekOf === weekOf);
+    const days = (existing && existing.kind === 'availability' ? existing.days : ALL_DAYS).filter((d) => d !== day);
+    const others = s.events.filter((e) => e !== existing);
+    return { ...s, events: [...others, { id: existing?.id ?? newId('availability'), kind: 'availability', weekOf, days }] };
+  });
 }
 
 export function logRun(entry: Omit<LogEntry, 'id'> & { id?: string }): string {

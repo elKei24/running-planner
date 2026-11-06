@@ -1,8 +1,9 @@
 import { useState } from 'preact/hooks';
 import { downloadText, exportJson, importJson } from '@/io/json';
 import { scheduleToIcs } from '@/io/ics';
-import { formatDuration, formatPaceRange } from '@/planner/paces';
-import { loadError, replaceState, resetPlan, schedule, state, todayDate, updateAthlete, updateGoal } from '@/store/state';
+import { formatDuration } from '@/planner/paces';
+import { loadError, replaceState, resetPlan, schedule, setUnits, state, todayDate, updateAthlete, updateGoal } from '@/store/state';
+import { paceRange } from './format';
 import { AthleteFields, athleteToForm, formToAthlete, formToGoal, GoalFields, goalToForm } from './forms';
 import { navigate } from './router';
 
@@ -19,14 +20,26 @@ export function SettingsView() {
           <p class="muted">Derived from your reference race (VDOT {sched.paces.vdot.toFixed(1)}). Predicted marathon: {formatDuration(sched.paces.predictedGoalTimeSec)}.</p>
           <table class="weeks">
             <tbody>
-              <tr><td>Easy / long</td><td>{formatPaceRange(sched.paces.easy)}</td></tr>
-              <tr><td>Marathon</td><td>{formatPaceRange(sched.paces.marathon)}</td></tr>
-              <tr><td>Threshold (tempo)</td><td>{formatPaceRange(sched.paces.threshold)}</td></tr>
-              <tr><td>Intervals</td><td>{formatPaceRange(sched.paces.interval)}</td></tr>
+              <tr><td>Easy / long</td><td>{paceRange(sched.paces.easy)}</td></tr>
+              <tr><td>Marathon</td><td>{paceRange(sched.paces.marathon)}</td></tr>
+              <tr><td>Threshold (tempo)</td><td>{paceRange(sched.paces.threshold)}</td></tr>
+              <tr><td>Intervals</td><td>{paceRange(sched.paces.interval)}</td></tr>
             </tbody>
           </table>
         </div>
       )}
+      <div class="card">
+        <h2>Display</h2>
+        <div class="checks" role="radiogroup" aria-label="Units">
+          <label>
+            <input type="radio" name="units" checked={s.prefs.units === 'km'} onChange={() => setUnits('km')} /> Kilometres
+          </label>
+          <label>
+            <input type="radio" name="units" checked={s.prefs.units === 'mi'} onChange={() => setUnits('mi')} /> Miles
+          </label>
+        </div>
+        <p class="muted" style={{ marginTop: 8 }}>Inputs are always in kilometres; this changes how distances and paces are shown.</p>
+      </div>
       <DataSettings />
     </div>
   );
@@ -117,7 +130,7 @@ function DataSettings() {
           Import backup
           <input type="file" accept="application/json,.json" onChange={onImport} class="sr-only" />
         </label>
-        <button class="btn" type="button" onClick={() => downloadText('running-plan.ics', scheduleToIcs(sched), 'text/calendar')}>Export calendar (.ics)</button>
+        <button class="btn" type="button" onClick={() => downloadText('running-plan.ics', scheduleToIcs(sched, s.prefs.units), 'text/calendar')}>Export calendar (.ics)</button>
       </div>
       {err && (
         <div class="row" style={{ marginTop: 12 }}>

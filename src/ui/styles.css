@@ -150,6 +150,9 @@ legend { padding: 0 6px; font-weight: 700; }
 .status.missed { color: var(--danger); }
 .status.skipped { color: var(--muted); }
 
+.today-card { border-color: var(--accent); background: linear-gradient(135deg, var(--accent-soft), var(--surface)); }
+.today-card h2 { font-size: 1.3rem; }
+
 .weeknav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .weeknav h2 { margin: 0; }
 

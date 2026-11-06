@@ -28,7 +28,7 @@ export function levelResponse(ratio: number): number {
 export function weeklyLoads(log: LogEntry[], fromWeek: LocalDate, toWeek: LocalDate): WeeklyLoad[] {
   const out: WeeklyLoad[] = [];
   for (let w = fromWeek; w < toWeek; w = addDays(w, 7)) {
-    out.push({ startDate: w, km: 0, runs: 0, longestKm: 0 });
+    out.push({ startDate: w, km: 0, runs: 0, longestKm: 0, expectedKm: 0 });
   }
   for (const entry of log) {
     if (entry.skipped || entry.distanceKm <= 0) continue;
@@ -63,6 +63,7 @@ export function estimateFitness(state: PlannerState, anchorDate: LocalDate): Fit
       fraction = (7 - weekday(baseline)) / 7;
     }
     const expected = level * fraction;
+    week.expectedKm = Math.round(expected * 10) / 10;
     const ratio = expected > 0 ? week.km / expected : week.km > 0 ? 1 : 0;
     level *= levelResponse(ratio);
     if (expected === 0 && week.km > 0) level = Math.max(level, week.km);

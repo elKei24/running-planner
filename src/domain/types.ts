@@ -1,7 +1,14 @@
 import type { LocalDate, Weekday } from './dates';
 
 /** Persisted schema version. Bump together with a migration in store/migrations.ts. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+
+export type Units = 'km' | 'mi';
+
+export interface Prefs {
+  /** Display units. Everything is stored in km; this only affects formatting. */
+  units: Units;
+}
 
 export type Priority = 'B' | 'C';
 
@@ -68,6 +75,7 @@ export interface PlannerState {
   goal: Goal;
   events: PlanEvent[];
   log: LogEntry[];
+  prefs: Prefs;
 }
 
 export type Phase = 'base' | 'build' | 'peak' | 'taper';
@@ -130,6 +138,8 @@ export interface WeeklyLoad {
   km: number;
   runs: number;
   longestKm: number;
+  /** Load the fitness model expected for this week (0 when unknown). */
+  expectedKm: number;
 }
 
 export interface FitnessEstimate {

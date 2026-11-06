@@ -1,7 +1,7 @@
 import { isLocalDate } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import { SCHEMA_VERSION } from '@/domain/types';
-import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState } from '@/domain/types';
+import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Prefs } from '@/domain/types';
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -127,6 +127,12 @@ export function validateLogEntry(v: unknown, path: string): LogEntry {
   return entry;
 }
 
+export function validatePrefs(v: unknown, path = 'prefs'): Prefs {
+  const o = obj(v, path);
+  if (o.units !== 'km' && o.units !== 'mi') fail(`${path}.units`, "'km' or 'mi'");
+  return { units: o.units };
+}
+
 /** Validate an untrusted value (from localStorage or an imported file) into a PlannerState. */
 export function validateState(v: unknown): PlannerState {
   const o = obj(v, 'state');
@@ -141,6 +147,7 @@ export function validateState(v: unknown): PlannerState {
     goal: validateGoal(o.goal),
     events: o.events.map((e, i) => validateEvent(e, `events[${i}]`)),
     log: o.log.map((e, i) => validateLogEntry(e, `log[${i}]`)),
+    prefs: validatePrefs(o.prefs),
   };
   if (o.baselineDate !== undefined && o.baselineDate !== null) state.baselineDate = date(o.baselineDate, 'baselineDate');
   const ids = new Set<string>();

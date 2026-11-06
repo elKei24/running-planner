@@ -2,7 +2,7 @@ import { plan } from '../src/planner/plan';
 import type { PlannerState } from '../src/domain/types';
 
 const state: PlannerState = {
-  version: 1,
+  version: 2,
   createdAt: '2026-11-04',
   athlete: { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 5, longRunDay: 6, peakWeeklyKm: 75, referenceRace: { distanceKm: 10, timeSec: 48 * 60 } },
   goal: { date: '2027-03-14', distanceKm: 42.195, targetTimeSec: 3 * 3600 + 45 * 60, name: 'Spring Marathon' },
@@ -11,6 +11,7 @@ const state: PlannerState = {
     { id: 'b1', kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' },
   ],
   log: [],
+  prefs: { units: 'km' },
 };
 const s = plan(state, process.argv[2] ?? '2026-11-06');
 console.log('level', s.fitness.levelKm, 'long', s.fitness.longRunKm, 'vdot', s.paces?.vdot.toFixed(1), 'pred', s.paces && (s.paces.predictedGoalTimeSec/60).toFixed(0), 'min');

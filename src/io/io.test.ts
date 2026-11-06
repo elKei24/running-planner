@@ -5,12 +5,13 @@ import { scheduleToIcs } from './ics';
 import { exportJson, importJson } from './json';
 
 const state: PlannerState = {
-  version: 1,
+  version: 2,
   createdAt: '2026-11-02',
   athlete: { weeklyKmRecent: 40, longestRecentRunKm: 16, daysPerWeek: 4, longRunDay: 6, peakWeeklyKm: 60 },
   goal: { date: '2027-02-28', distanceKm: 42.195 },
   events: [],
   log: [],
+  prefs: { units: 'km' },
 };
 
 describe('json', () => {
@@ -37,5 +38,13 @@ describe('ics', () => {
     expect(ics).toContain('SUMMARY:🏃 Race day');
     for (const line of ics.split('\r\n')) expect(line.length).toBeLessThanOrEqual(75);
     expect(ics.endsWith('END:VCALENDAR\r\n')).toBe(true);
+  });
+
+  it('formats distances and paces in miles when asked', () => {
+    const schedule = plan({ ...state, athlete: { ...state.athlete, referenceRace: { distanceKm: 10, timeSec: 3000 } } }, '2026-11-02');
+    const ics = scheduleToIcs(schedule, 'mi');
+    expect(ics).toContain('/mi');
+    expect(ics).toContain(' mi');
+    expect(ics).not.toContain('/km');
   });
 });

@@ -1,7 +1,7 @@
 import { formatDate, WEEKDAY_NAMES, weekday } from '@/domain/dates';
 import type { LogEntry, Session } from '@/domain/types';
-import { formatDuration, formatPaceRange } from '@/planner/paces';
-import { km, TYPE_LABEL } from './format';
+import { formatDuration } from '@/planner/paces';
+import { km, paceRange, TYPE_LABEL } from './format';
 
 export type SessionStatus = 'planned' | 'today' | 'done' | 'missed' | 'skipped' | 'none';
 
@@ -14,7 +14,16 @@ export function sessionStatus(s: Session, entries: LogEntry[], today: string): S
   return 'planned';
 }
 
-export function SessionCard({ session, entries, today, onLog }: { session: Session; entries: LogEntry[]; today: string; onLog?: (s: Session) => void }) {
+export interface SessionCardProps {
+  session: Session;
+  entries: LogEntry[];
+  today: string;
+  onLog?: (s: Session) => void;
+  onExclude?: (s: Session) => void;
+}
+
+export function SessionCard({ session, entries, today, onLog, onExclude }: SessionCardProps) {
+  const beforePlan = session.title === 'Before plan start';
   const status = sessionStatus(session, entries, today);
   const logged = entries.reduce((a, e) => a + (e.skipped ? 0 : e.distanceKm), 0);
   const classes = ['session', session.date === today ? 'today' : '', status === 'done' ? 'done' : '', status === 'missed' ? 'past-missed' : ''].join(' ');
@@ -33,7 +42,7 @@ export function SessionCard({ session, entries, today, onLog }: { session: Sessi
         {session.distanceKm > 0 && (
           <div class="meta">
             {km(session.distanceKm)}
-            {session.pace ? ` · ${formatPaceRange(session.pace)}` : ''}
+            {session.pace ? ` · ${paceRange(session.pace)}` : ''}
           </div>
         )}
         <div class="desc">{session.description}</div>
@@ -52,9 +61,14 @@ export function SessionCard({ session, entries, today, onLog }: { session: Sessi
         {status === 'done' && <span class="status done">✓ {km(logged)}</span>}
         {status === 'missed' && <span class="status missed">Missed</span>}
         {status === 'skipped' && <span class="status skipped">Skipped</span>}
-        {onLog && session.date <= today && (
+        {onLog && session.date <= today && !beforePlan && (
           <button class="btn small" type="button" onClick={() => onLog(session)}>
             {entries.length > 0 ? 'Edit' : 'Log'}
+          </button>
+        )}
+        {onExclude && session.date > today && session.distanceKm > 0 && session.type !== 'race' && (
+          <button class="btn small ghost" type="button" onClick={() => onExclude(session)} title="Re-plan this week without this day">
+            Can't run
           </button>
         )}
       </div>
