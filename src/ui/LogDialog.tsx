@@ -86,7 +86,7 @@ export function LogDialog({ date, session, existing, initial, onClose }: LogDial
               Effort (RPE 1–10)
               {session && expectedRpe(session.type) && (
                 <span class="hint">
-                  A {session.type === 'marathonPace' ? 'marathon-pace' : session.type} session should feel like {expectedRpe(session.type)![0]}–{expectedRpe(session.type)![1]}.
+                  This {session.type === 'marathonPace' ? 'marathon-pace' : session.type} session should feel like {expectedRpe(session.type)![0]}–{expectedRpe(session.type)![1]}.
                 </span>
               )}
               <select value={rpe} onChange={(e) => setRpe((e.currentTarget as HTMLSelectElement).value)} aria-describedby="rpe-meaning">
