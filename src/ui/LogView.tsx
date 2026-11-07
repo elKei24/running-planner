@@ -55,9 +55,6 @@ export function LogView() {
             <button class="btn primary" type="button" onClick={() => setEditing({ date: todayDate.value })}>+ Log a run</button>
           </div>
         </div>
-        <div class="muted" style={{ marginTop: 8 }}>
-          Missed a day? "Log a run" lets you pick any past date, and the week view can go back through earlier weeks.
-        </div>
         {importError && <div class="alert danger" style={{ marginTop: 12 }}>{importError}</div>}
       </div>
       <div class="list">
@@ -76,7 +73,7 @@ export function LogView() {
         ))}
       </div>
       {editing && (
-        <LogDialog date={editing.date} existing={editing.entry} initial={editing.initial} editableDate={!editing.entry} onClose={() => setEditing(null)} />
+        <LogDialog date={editing.date} existing={editing.entry} initial={editing.initial} editableDate onClose={() => setEditing(null)} />
       )}
     </div>
   );

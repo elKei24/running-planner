@@ -56,6 +56,22 @@ describe('logging past runs', () => {
     expect(state.value!.log).toHaveLength(1);
   });
 
+  it('lets an existing entry be moved to another day when editing', async () => {
+    logRun({ date: '2026-11-18', distanceKm: 7 });
+    render(<App />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    });
+    const dialog = await waitFor(() => document.querySelector('dialog')!);
+    await type(dialog.querySelector('input[aria-label="Run date"]')!, '2026-11-17');
+    await act(async () => {
+      fireEvent.submit(dialog.querySelector('form')!);
+    });
+    await waitFor(() => expect(state.value!.log[0]!.date).toBe('2026-11-17'));
+    expect(state.value!.log).toHaveLength(1);
+    expect(state.value!.log[0]!.distanceKm).toBe(7);
+  });
+
   it('navigates back into past weeks and logs from a day card there', async () => {
     logRun({ date: '2026-11-10', distanceKm: 8 });
     render(<App />);

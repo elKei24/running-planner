@@ -10,14 +10,15 @@ export interface LogDialogProps {
   existing?: LogEntry;
   /** Pre-filled values, e.g. from an imported GPX file. */
   initial?: { distanceKm?: number; durationSec?: number; note?: string };
-  /** Let the athlete pick the day inside the dialog (for logging past runs). */
+  /** Let the athlete pick the day inside the dialog. Always on when editing an existing entry. */
   editableDate?: boolean;
   onClose: () => void;
 }
 
-export function LogDialog({ date: initialDate, session, existing, initial, editableDate = false, onClose }: LogDialogProps) {
+export function LogDialog({ date: initialDate, session, existing, initial, editableDate: editableDateProp = false, onClose }: LogDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const [date, setDate] = useState(initialDate);
+  const editableDate = editableDateProp || !!existing;
   const [distance, setDistance] = useState(
     existing ? String(existing.distanceKm) : initial?.distanceKm ? String(initial.distanceKm) : session && session.distanceKm > 0 ? String(session.distanceKm) : '',
   );
