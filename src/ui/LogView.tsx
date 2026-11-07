@@ -55,6 +55,9 @@ export function LogView() {
             <button class="btn primary" type="button" onClick={() => setEditing({ date: todayDate.value })}>+ Log a run</button>
           </div>
         </div>
+        <div class="muted" style={{ marginTop: 8 }}>
+          Ran a race you had not planned? <a href="#/events">Add it as a past race</a> to log the result and get the recovery days.
+        </div>
         {importError && <div class="alert danger" style={{ marginTop: 12 }}>{importError}</div>}
       </div>
       <div class="list">

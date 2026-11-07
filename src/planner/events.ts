@@ -38,8 +38,43 @@ export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: 
   const get = (date: LocalDate) => (date < notBefore ? undefined : sessions.get(date));
   const easy = (s: Session, km: number, why: string, title?: string) => toEasy(s, km, why, title, units);
   for (const race of sorted) {
+    // A race before the plan window (last week, say) still drives recovery this week.
     const existing = get(race.date);
-    if (!existing) continue; // outside the plan window
+    if (existing) applyRaceDay(sessions, get, easy, race, existing, paces, units);
+
+    // Recovery after.
+    const window = race.priority === 'B' ? recoveryDays(race.distanceKm) : 1;
+    for (let k = 1; k <= window; k++) {
+      const s = get(addDays(race.date, k));
+      if (!isRun(s)) continue;
+      if (k === 1) {
+        sessions.set(s.date, {
+          ...easy(s, Math.min(s.distanceKm, 6), 'Recovery after the race.', 'Recovery jog'),
+          id: `${s.date}-recovery`,
+          type: 'recovery',
+        });
+      } else if (k <= 2 && s.type === 'long') {
+        sessions.set(s.date, easy(s, s.distanceKm * 0.5, 'Shortened after the race.'));
+      } else if (isQuality(s)) {
+        sessions.set(s.date, easy(s, s.distanceKm, 'Still recovering from the race: no hard running.'));
+      } else if (s.type === 'long') {
+        sessions.set(s.date, { ...s, description: 'Easy only, still recovering from the race. No marathon-pace work.', adjusted: true });
+      }
+    }
+  }
+}
+
+/** The race day itself and the days leading into it. */
+function applyRaceDay(
+  sessions: SessionMap,
+  get: (date: LocalDate) => Session | undefined,
+  easy: (s: Session, km: number, why: string, title?: string) => Session,
+  race: RaceEvent,
+  existing: Session,
+  paces: PaceZones | undefined,
+  units: Units,
+): void {
+  {
     const label = race.name ?? `${formatKm(race.distanceKm, units)} race`;
     const pace = paces ? racePace(paces.vdot, race.distanceKm) : undefined;
     sessions.set(race.date, {
@@ -75,26 +110,6 @@ export function applyRaces(sessions: SessionMap, races: RaceEvent[], notBefore: 
       const dayBefore = get(addDays(race.date, -1));
       if (dayBefore && isQuality(dayBefore)) {
         sessions.set(dayBefore.date, easy(dayBefore, dayBefore.distanceKm, 'Easy before tomorrow\'s race.'));
-      }
-    }
-
-    // Recovery after.
-    const window = race.priority === 'B' ? recoveryDays(race.distanceKm) : 1;
-    for (let k = 1; k <= window; k++) {
-      const s = get(addDays(race.date, k));
-      if (!isRun(s)) continue;
-      if (k === 1) {
-        sessions.set(s.date, {
-          ...easy(s, Math.min(s.distanceKm, 6), 'Recovery after the race.', 'Recovery jog'),
-          id: `${s.date}-recovery`,
-          type: 'recovery',
-        });
-      } else if (k <= 2 && s.type === 'long') {
-        sessions.set(s.date, easy(s, s.distanceKm * 0.5, 'Shortened after the race.'));
-      } else if (isQuality(s)) {
-        sessions.set(s.date, easy(s, s.distanceKm, 'Still recovering from the race: no hard running.'));
-      } else if (s.type === 'long') {
-        sessions.set(s.date, { ...s, description: 'Easy only, still recovering from the race. No marathon-pace work.', adjusted: true });
       }
     }
   }

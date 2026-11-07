@@ -74,11 +74,26 @@ describe('applyRaces', () => {
     expect(p.minSecPerKm).toBeLessThan(paces.threshold.minSecPerKm);
   });
 
-  it('ignores races outside the plan window', () => {
+  it('ignores races after the plan window', () => {
     const map = twoWeeks();
     const before = [...map.values()];
     applyRaces(map, [{ id: 'x', kind: 'race', date: '2027-01-01', distanceKm: 10, priority: 'B' }], '2026-01-01');
     expect([...map.values()]).toEqual(before);
+  });
+
+  it('applies recovery for a race that happened before the window (logged late)', () => {
+    const map = twoWeeks(); // starts Monday 2026-11-09
+    applyRaces(map, [{ id: 'hm', kind: 'race', date: '2026-11-07', distanceKm: 21.0975, priority: 'B' }], '2026-01-01');
+    // 9 recovery days: Mon 9 Nov is a rest day, Wed 11 (tempo) and Fri 13 (intervals) become easy, Sun 15 long run stays but easy only.
+    expect(map.get('2026-11-11')!.type).toBe('easy');
+    expect(map.get('2026-11-13')!.type).toBe('easy');
+    expect(map.get('2026-11-15')!.description).toContain('recovering');
+    expect(map.get('2026-11-18')!.type).toBe('intervals'); // day 11: normal again
+    // Even a race before the plan was created still drives recovery, but nothing before `notBefore` is touched.
+    const fresh = twoWeeks();
+    applyRaces(fresh, [{ id: 'hm', kind: 'race', date: '2026-11-07', distanceKm: 21.0975, priority: 'B' }], '2026-11-09');
+    expect(fresh.get('2026-11-11')!.type).toBe('easy');
+    expect([...fresh.keys()].every((d) => d >= '2026-11-09')).toBe(true);
   });
 });
 

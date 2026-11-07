@@ -2,8 +2,9 @@ import { useState } from 'preact/hooks';
 import { formatDate, startOfWeek, WEEKDAY_NAMES } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
-import { addEvent, removeEvent, state, todayDate } from '@/store/state';
-import { DISTANCE_PRESETS } from './format';
+import { formatDuration, parseDuration } from '@/planner/paces';
+import { addEvent, entriesOn, logRun, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
+import { DISTANCE_PRESETS, km } from './format';
 import { DistanceField } from './forms';
 
 type Tab = 'race' | 'block' | 'availability';
@@ -37,11 +38,36 @@ export function EventsView() {
             <div>
               <strong>{describe(e)}</strong>
               <div class="muted">{detail(e)}</div>
+              {e.kind === 'race' && e.date <= todayDate.value && <RaceResult race={e} />}
             </div>
             <button class="btn small danger" type="button" onClick={() => removeEvent(e.id)}>Remove</button>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** For a past race: the logged result, and a shortcut to use it as the reference race for paces. */
+function RaceResult({ race }: { race: Extract<PlanEvent, { kind: 'race' }> }) {
+  const s = state.value!;
+  const result = entriesOn(s, race.date).find((l) => !l.skipped && l.durationSec);
+  if (!result) return <div class="muted">No result logged yet.</div>;
+  const ref = s.athlete.referenceRace;
+  const isReference = !!ref && Math.abs(ref.distanceKm - race.distanceKm) < 0.01 && ref.timeSec === result.durationSec;
+  return (
+    <div class="muted">
+      Result: {km(result.distanceKm)} in {formatDuration(result.durationSec!)}
+      {isReference ? (
+        ' · used for your paces'
+      ) : (
+        <>
+          {' · '}
+          <button class="btn small ghost" type="button" onClick={() => updateAthlete({ ...s.athlete, referenceRace: { distanceKm: race.distanceKm, timeSec: result.durationSec! } }, false)}>
+            Use for paces
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -77,16 +103,31 @@ function RaceForm() {
   const [distance, setDistance] = useState('10');
   const [priority, setPriority] = useState<'B' | 'C'>('B');
   const [name, setName] = useState('');
+  const [time, setTime] = useState('');
+  const [logIt, setLogIt] = useState(true);
+  const [useForPaces, setUseForPaces] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isPast = !!date && date <= todayDate.value;
   const submit = (e: Event) => {
     e.preventDefault();
     if (!date) return setError('Pick a date.');
-    if (date < todayDate.value) return setError('The race is in the past.');
     const distanceKm = Number(distance);
     if (!(distanceKm > 0)) return setError('Enter the race distance in km.');
+    let durationSec: number | undefined;
+    if (isPast && time.trim()) {
+      durationSec = parseDuration(time);
+      if (durationSec === undefined) return setError('Finish time must look like 48:30 or 1:45:00.');
+    }
     addEvent({ kind: 'race', date, distanceKm, priority, ...(name.trim() ? { name: name.trim() } : {}) });
+    if (isPast && logIt) {
+      logRun({ date, distanceKm, ...(durationSec ? { durationSec } : {}), ...(name.trim() ? { note: name.trim() } : {}) });
+    }
+    if (isPast && useForPaces && durationSec) {
+      updateAthlete({ ...state.value!.athlete, referenceRace: { distanceKm, timeSec: durationSec } }, false);
+    }
     setDate('');
     setName('');
+    setTime('');
     setError(null);
   };
   return (
@@ -105,9 +146,26 @@ function RaceForm() {
           </select>
         </label>
         <label class="field">Name<input type="text" value={name} onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)} placeholder="optional" /></label>
+        {isPast && (
+          <label class="field">
+            Finish time
+            <span class="hint">Already run? Enter the result and it is logged for you.</span>
+            <input type="text" placeholder="h:mm:ss" value={time} onInput={(e) => setTime((e.currentTarget as HTMLInputElement).value)} aria-label="Finish time" />
+          </label>
+        )}
       </div>
+      {isPast && (
+        <div class="checks">
+          <label>
+            <input type="checkbox" checked={logIt} onChange={(e) => setLogIt((e.currentTarget as HTMLInputElement).checked)} /> Log it as a run on that day
+          </label>
+          <label>
+            <input type="checkbox" checked={useForPaces} disabled={!time.trim()} onChange={(e) => setUseForPaces((e.currentTarget as HTMLInputElement).checked)} /> Use the result for my training paces
+          </label>
+        </div>
+      )}
       {error && <div class="alert danger">{error}</div>}
-      <button class="btn primary" type="submit">Add race</button>
+      <button class="btn primary" type="submit">{isPast ? 'Add past race' : 'Add race'}</button>
     </form>
   );
 }
