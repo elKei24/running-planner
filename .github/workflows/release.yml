@@ -1,0 +1,103 @@
+# Every push to main (i.e. every squash-merged PR) runs the checks, lets semantic-release decide
+# from the Conventional Commits history whether a new version is due, and if so creates the tag
+# and the GitHub release, then builds that tag and publishes it to GitHub Pages. Commits that do
+# not warrant a release (docs, ci, chore, ...) stop after the release job.
+#
+# Run it manually with a tag to publish an existing release to Pages again.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to publish to GitHub Pages again (e.g. v1.2.3). Leave empty to cut a release.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create release
+    if: ${{ inputs.tag == '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and the GitHub release
+    outputs:
+      published: ${{ steps.semantic-release.outputs.published }}
+      version: ${{ steps.semantic-release.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # semantic-release needs the tags and the full history since the last one
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - name: Create tag and GitHub release
+        id: semantic-release
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    name: Build release for GitHub Pages
+    needs: release
+    # Run when a release was just published, or when a tag was passed in manually. The release job
+    # is skipped in the manual case, so do not let its skipped result skip this one.
+    if: ${{ !cancelled() && needs.release.result != 'failure' && (needs.release.outputs.published == 'true' || inputs.tag != '') }}
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Pick the tag to publish
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+          RELEASED_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          tag="${INPUT_TAG:-v$RELEASED_VERSION}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v7
+        with:
+          ref: refs/tags/${{ steps.meta.outputs.tag }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Build for GitHub Pages
+        run: npm run build
+        env:
+          # Shown as "Version x.y.z" on the settings page.
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          # Project site: https://<owner>.github.io/<repo>/
+          BASE_PATH: /${{ github.event.repository.name }}/
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy ${{ needs.build.outputs.tag }} to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -78,8 +78,11 @@ silently discarding it.
 
 Vite + TypeScript + Preact + signals. Vitest with fast-check for property tests; happy-dom and
 Testing Library for UI smoke tests. `vite-plugin-pwa` produces a service worker so the app works
-offline once loaded. GitHub Actions run typecheck, lint, tests and build on every push; pushes to
-`main` deploy `dist/` to GitHub Pages (`BASE_PATH=/running-planner/`).
+offline once loaded. GitHub Actions run typecheck, lint, tests and build on every pull request.
+Pull requests are squash merged into `main` with a Conventional Commits title; semantic-release
+turns the commit history into tags and GitHub releases, and each release is built (with the
+version injected as `__APP_VERSION__`, `BASE_PATH=/running-planner/`) and deployed to GitHub Pages.
+See the README for the details.
 
 ## What a backend would add
 

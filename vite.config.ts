@@ -2,12 +2,23 @@ import { defineConfig } from 'vite';
 import preact from '@preact/preset-vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { fileURLToPath, URL } from 'node:url';
-import { readFileSync } from 'node:fs';
-
-const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
+import { execSync } from 'node:child_process';
 
 // BASE_PATH is set by the GitHub Pages deployment workflow (e.g. "/running-planner/").
 const base = process.env.BASE_PATH ?? '/';
+
+// Shown as "Version ..." on the settings page. Releases are cut by semantic-release from the
+// Conventional Commits history (see .releaserc.json), so package.json carries no real version:
+// the release workflow passes the released version in as APP_VERSION. Everything else is a
+// development build and is labelled with the commit it was built from.
+function appVersion(): string {
+  if (process.env.APP_VERSION) return process.env.APP_VERSION;
+  try {
+    return `dev-${execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()}`;
+  } catch {
+    return 'dev';
+  }
+}
 
 export default defineConfig({
   base,
@@ -38,6 +49,6 @@ export default defineConfig({
       workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
     }),
   ],
-  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
+  define: { __APP_VERSION__: JSON.stringify(appVersion()) },
   build: { target: 'es2022', sourcemap: true },
 });
