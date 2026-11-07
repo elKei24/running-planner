@@ -31,6 +31,9 @@
 - Custom race distances (e.g. 6 km) for tune-up races, the goal race and the reference race,
   via a "Custom…" option on every distance picker. The planner never depended on presets.
 
+- Build strategy setting: steady ramp, or build fast then maintain before a 12-week marathon
+  block, for horizons beyond 24 weeks (ADR 0015).
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.

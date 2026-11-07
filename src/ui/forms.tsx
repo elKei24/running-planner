@@ -3,6 +3,7 @@ import { WEEKDAY_LONG_NAMES } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import type { Athlete, Goal } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
+import { FAST_STRATEGY_MIN_WEEKS } from '@/planner/periodize';
 import { peakLongRunKm } from '@/planner/template';
 import { DISTANCE_PRESETS } from './format';
 
@@ -64,6 +65,7 @@ export interface AthleteFormValue {
   peakWeeklyKm: string;
   refDistanceKm: string;
   refTime: string;
+  buildStrategy: string;
 }
 
 export function athleteToForm(a?: Athlete): AthleteFormValue {
@@ -75,6 +77,7 @@ export function athleteToForm(a?: Athlete): AthleteFormValue {
     peakWeeklyKm: a ? String(a.peakWeeklyKm) : String(defaultPeak(30, 4)),
     refDistanceKm: a?.referenceRace ? String(a.referenceRace.distanceKm) : '10',
     refTime: a?.referenceRace ? formatDuration(a.referenceRace.timeSec) : '',
+    buildStrategy: a?.buildStrategy ?? 'steady',
   };
 }
 
@@ -93,6 +96,7 @@ export function formToAthlete(f: AthleteFormValue): Athlete | string {
     daysPerWeek,
     longRunDay: Number(f.longRunDay) as Weekday,
     peakWeeklyKm,
+    buildStrategy: f.buildStrategy === 'fast' ? 'fast' : 'steady',
   };
   if (f.refTime.trim()) {
     const timeSec = parseDuration(f.refTime);
@@ -104,7 +108,7 @@ export function formToAthlete(f: AthleteFormValue): Athlete | string {
   return athlete;
 }
 
-export function AthleteFields({ value, onChange, goalKm = 42.195 }: { value: AthleteFormValue; onChange: (v: AthleteFormValue) => void; goalKm?: number }) {
+export function AthleteFields({ value, onChange, goalKm = 42.195, weeksToRace }: { value: AthleteFormValue; onChange: (v: AthleteFormValue) => void; goalKm?: number; weeksToRace?: number }) {
   const set = (k: keyof AthleteFormValue) => (e: Event) => onChange({ ...value, [k]: (e.currentTarget as HTMLInputElement).value });
   const peak = Number(value.peakWeeklyKm);
   const impliedLong = peak > 0 ? peakLongRunKm(peak, goalKm) : 0;
@@ -142,6 +146,18 @@ export function AthleteFields({ value, onChange, goalKm = 42.195 }: { value: Ath
           {impliedLong > 0 ? ` At ${Math.round(peak)} km/week the longest run will be about ${impliedLong} km${goalKm > 40 && impliedLong < 28 ? ' (28–32 km is ideal for a marathon)' : ''}.` : ''}
         </span>
         <input type="number" min="10" step="5" inputMode="decimal" value={value.peakWeeklyKm} onInput={set('peakWeeklyKm')} required />
+      </label>
+      <label class="field">
+        Build strategy
+        <span class="hint">
+          {weeksToRace !== undefined && weeksToRace >= FAST_STRATEGY_MIN_WEEKS
+            ? `With ${weeksToRace} weeks, building fast then maintaining avoids a year-long trickle.`
+            : `Only matters with ${FAST_STRATEGY_MIN_WEEKS}+ weeks to race day.`}
+        </span>
+        <select value={value.buildStrategy} onChange={set('buildStrategy')} aria-label="Build strategy">
+          <option value="steady">Steady: spread the build over all the weeks</option>
+          <option value="fast">Build fast, then maintain: peak volume in ~16 weeks, hold, 12-week marathon block</option>
+        </select>
       </label>
       <label class="field">
         Recent race (for paces)

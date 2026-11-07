@@ -55,6 +55,10 @@ export function validateAthlete(v: unknown, path = 'athlete'): Athlete {
     longRunDay: weekday(o.longRunDay, `${path}.longRunDay`),
     peakWeeklyKm: num(o.peakWeeklyKm, `${path}.peakWeeklyKm`, 0, 400),
   };
+  if (o.buildStrategy !== undefined && o.buildStrategy !== null) {
+    if (o.buildStrategy !== 'steady' && o.buildStrategy !== 'fast') fail(`${path}.buildStrategy`, "'steady' or 'fast'");
+    athlete.buildStrategy = o.buildStrategy;
+  }
   if (o.referenceRace !== undefined && o.referenceRace !== null) {
     const r = obj(o.referenceRace, `${path}.referenceRace`);
     athlete.referenceRace = {

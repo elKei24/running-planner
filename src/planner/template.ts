@@ -32,14 +32,28 @@ export function establishedLongRunFloor(recentLongestKm: number, weekKm: number)
 }
 
 /**
- * Floor for a peak-phase long run when training for a marathon: at least
- * min(target, half the week), progressing from 28 km to 32 km across the phase.
+ * Floor for a long run when training for a marathon, limited to half the week:
+ * - peak phase: 28 → 30 → 32 km across the phase;
+ * - the build phase right before the peak (`finalBuild`): 22 km + 1 km per week,
+ *   so the long run walks up to the peak instead of dipping after a maintain phase.
  * Returns 0 for shorter goals or other phases.
  */
-export function marathonLongRunFloor(goalKm: number, phase: Phase, weekKm: number, phaseOrdinal = 0): number {
-  if (goalKm <= 40 || phase !== 'peak') return 0;
-  const progressed = Math.min(MARATHON_LONG_RUN_TARGET_KM, MARATHON_LONG_RUN_FIRST_KM + 2 * phaseOrdinal);
-  return Math.min(progressed, weekKm * MAX_LONG_RUN_SHARE);
+export function marathonLongRunFloor(goalKm: number, phase: Phase, weekKm: number, phaseOrdinal = 0, finalBuild = false): number {
+  if (goalKm <= 40) return 0;
+  if (phase === 'peak') {
+    const progressed = Math.min(MARATHON_LONG_RUN_TARGET_KM, MARATHON_LONG_RUN_FIRST_KM + 2 * phaseOrdinal);
+    return Math.min(progressed, weekKm * MAX_LONG_RUN_SHARE);
+  }
+  if (phase === 'build' && finalBuild) {
+    return Math.min(MARATHON_LONG_RUN_FIRST_KM - 6 + phaseOrdinal, MARATHON_LONG_RUN_FIRST_KM - 1, weekKm * MAX_LONG_RUN_SHARE);
+  }
+  return 0;
+}
+
+/** Every third maintain week carries a longer long run (+15 %), still within half the week. */
+export function maintainLongRunBoost(phase: Phase, weekKm: number, phaseOrdinal: number): number {
+  if (phase !== 'maintain' || phaseOrdinal % 3 !== 2) return 0;
+  return Math.min(weekKm * longRunFraction('maintain', weekKm) * 1.15, weekKm * MAX_LONG_RUN_SHARE);
 }
 
 /** Longest run a peak week of `weekKm` implies for a goal of `goalKm` (before time/growth caps). */
@@ -89,7 +103,8 @@ export function qualityKinds(phase: Phase, index: number, daysPerWeek: number, i
   switch (phase) {
     case 'base':
       return ['tempo'];
-    case 'build': {
+    case 'build':
+    case 'maintain': {
       const kinds: QualityKind[] = odd ? ['intervals', 'tempo'] : ['tempo', 'intervals'];
       return daysPerWeek >= 5 && !isStepBack ? kinds : kinds.slice(0, 1);
     }
@@ -116,6 +131,8 @@ export function longRunFraction(phase: Phase, weekKm = 60): number {
       return peakFraction * 0.8;
     case 'build':
       return peakFraction * 0.9;
+    case 'maintain':
+      return peakFraction * 0.95;
     case 'peak':
       return peakFraction;
     case 'taper':
@@ -406,6 +423,9 @@ function longDescription(phase: Phase, index: number, km: number, phaseOrdinal: 
   }
   if (phase === 'build' && index % 2 === 1 && km >= 16) {
     return 'Easy, with the final 20 minutes at a steady (marathon-ish) effort.';
+  }
+  if (phase === 'maintain' && phaseOrdinal % 3 === 2 && km >= 16) {
+    return 'The longer one this cycle: easy, with the final 20 minutes at a steady (marathon-ish) effort.';
   }
   if (phase === 'taper') return 'Relaxed. Keep the routine, drop the fatigue.';
   return 'Conversational pace throughout. Time on feet is the goal.';

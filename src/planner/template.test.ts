@@ -3,7 +3,7 @@ import fc from 'fast-check';
 import type { Weekday } from '@/domain/dates';
 import type { Phase } from '@/domain/types';
 import { paceZones } from './paces';
-import { buildWeek, chooseRunDays, distribute, establishedLongRunFloor, fmtKm, longRunFraction, marathonLongRunFloor, marathonPaceShare, peakLongRunKm, qualityKinds, structureQuality } from './template';
+import { buildWeek, chooseRunDays, distribute, establishedLongRunFloor, fmtKm, longRunFraction, maintainLongRunBoost, marathonLongRunFloor, marathonPaceShare, peakLongRunKm, qualityKinds, structureQuality } from './template';
 import type { WeekTemplateInput } from './template';
 
 const ALL: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
@@ -82,7 +82,7 @@ describe('distribute', () => {
     fc.assert(
       fc.property(
         fc.double({ min: 0, max: 150, noNaN: true }),
-        fc.constantFrom<Phase>('base', 'build', 'peak', 'taper'),
+        fc.constantFrom<Phase>('base', 'build', 'maintain', 'peak', 'taper'),
         fc.double({ min: 5, max: 40, noNaN: true }),
         fc.integer({ min: 0, max: 2 }),
         fc.integer({ min: 0, max: 5 }),
@@ -218,6 +218,12 @@ describe('buildWeek', () => {
     expect(marathonLongRunFloor(42.195, 'peak', 70, 2)).toBe(32);
     expect(marathonLongRunFloor(42.195, 'peak', 40, 2)).toBe(20);
     expect(marathonLongRunFloor(42.195, 'build', 70, 2)).toBe(0);
+    expect(marathonLongRunFloor(42.195, 'build', 70, 0, true)).toBe(22);
+    expect(marathonLongRunFloor(42.195, 'build', 70, 5, true)).toBe(27);
+    expect(marathonLongRunFloor(42.195, 'build', 40, 5, true)).toBe(20);
+    expect(maintainLongRunBoost('maintain', 62.5, 2)).toBeGreaterThan(27);
+    expect(maintainLongRunBoost('maintain', 62.5, 1)).toBe(0);
+    expect(maintainLongRunBoost('build', 62.5, 2)).toBe(0);
     expect(marathonLongRunFloor(21.0975, 'peak', 70, 2)).toBe(0);
     const d = distribute(60, 'peak', 40, 2, 2, 30);
     expect(d.longKm).toBe(30);

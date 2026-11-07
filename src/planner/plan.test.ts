@@ -144,6 +144,35 @@ describe('plan', () => {
     expect(week.notes.join(' ')).toContain('availability');
   });
 
+  it('build fast, then maintain: peak volume by week 16, a held middle, and a marathon block', () => {
+    const athlete = { weeklyKmRecent: 37, longestRecentRunKm: 21, daysPerWeek: 4, longRunDay: 6 as const, peakWeeklyKm: 70, buildStrategy: 'fast' as const };
+    const s = plan(baseState({ createdAt: '2026-11-06', athlete, goal: { date: '2027-12-05', distanceKm: 42.195 } }), '2026-11-06');
+    expect(s.weeks).toHaveLength(57);
+    expect(s.weeks[15]!.phase).toBe('build');
+    // Peak volume is reached by the end of the initial block (week 16 is a step-back week).
+    expect(Math.max(...[12, 13, 14, 15].map((i) => weekKm(s, i)))).toBeGreaterThanOrEqual(69);
+    const maintain = s.weeks.filter((w) => w.phase === 'maintain');
+    expect(maintain).toHaveLength(29);
+    for (const w of maintain.filter((w) => !w.isStepBack)) expect(weekKm(s, w.index)).toBeGreaterThanOrEqual(60);
+    expect(maintain[0]!.notes.join(' ')).toContain('marathon block starts');
+    expect(longRun(s, maintain[2]!.index)!.distanceKm).toBeGreaterThanOrEqual(21);
+    const peakIdx = s.weeks.findLastIndex((w) => w.phase === 'peak');
+    expect(longRun(s, peakIdx)!.distanceKm).toBeGreaterThanOrEqual(32);
+    // The final build block walks the long run up (22 → 27) and every third maintain week is longer.
+    const finalBuild = s.weeks.filter((w) => w.phase === 'build' && w.index > 20 && !w.isStepBack).map((w) => longRun(s, w.index)!.distanceKm);
+    for (let k = 1; k < finalBuild.length; k++) expect(finalBuild[k]!).toBeGreaterThanOrEqual(finalBuild[k - 1]!);
+    expect(finalBuild[finalBuild.length - 1]!).toBeGreaterThanOrEqual(27);
+    const boosted = maintain.filter((w) => !w.isStepBack && longRun(s, w.index)!.distanceKm >= 27);
+    expect(boosted.length).toBeGreaterThanOrEqual(6);
+    // The same athlete on the steady strategy crawls instead.
+    const steady = plan(baseState({ createdAt: '2026-11-06', athlete: { ...athlete, buildStrategy: 'steady' }, goal: { date: '2027-12-05', distanceKm: 42.195 } }), '2026-11-06');
+    expect(weekKm(steady, 15)).toBeLessThan(50);
+    // With a short horizon both strategies agree, and the user is told.
+    const short = plan(baseState({ athlete }), '2026-11-02');
+    expect(short.weeks.map((w) => w.phase)).toEqual(plan(baseState({ athlete: { ...athlete, buildStrategy: 'steady' } }), '2026-11-02').weeks.map((w) => w.phase));
+    expect(short.warnings.some((w) => w.message.includes('steady build'))).toBe(true);
+  });
+
   it('never schedules a shorter long run than the athlete already does', () => {
     const s = plan(baseState({ athlete: { ...baseState().athlete, weeklyKmRecent: 40, longestRecentRunKm: 19, daysPerWeek: 4, peakWeeklyKm: 60 }, goal: { date: '2027-11-07', distanceKm: 42.195 } }), '2026-11-02');
     const first = s.weeks[0]!.sessions.find((x) => x.type === 'long')!;

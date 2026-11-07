@@ -81,6 +81,12 @@ than a finding, it says so. Sources are listed at the end.
 
 ## Periodisation
 
+Two build strategies (ADR 0015). **Steady** spreads the ramp evenly over the available weeks and
+suits 8–24 weeks. **Build fast, then maintain** (default beyond 24 weeks) ramps to peak volume in
+about 16 weeks at up to 10 %/week, holds ~90 % of peak with step-backs and alternating tempo and
+interval work, then runs a 12-week marathon block (6 build + 3 peak + 3 taper). Long maintenance
+periods are where tune-up races belong.
+
 Weeks are allocated backwards from race day: taper (1–3 weeks), peak (0–3), then build and base
 split the remainder (`periodize`). With fewer than 8 weeks the plan is compressed and the athlete is
 warned; with fewer than 12 weeks a milder warning is shown. 16–18 weeks is the comfortable range.

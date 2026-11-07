@@ -5,7 +5,7 @@ import { state } from '@/store/state';
 
 export const KM_PER_MILE = 1.609344;
 
-export const PHASE_LABEL: Record<Phase, string> = { base: 'Base', build: 'Build', peak: 'Peak', taper: 'Taper' };
+export const PHASE_LABEL: Record<Phase, string> = { base: 'Base', build: 'Build', maintain: 'Maintain', peak: 'Peak', taper: 'Taper' };
 
 export const TYPE_LABEL: Record<SessionType, string> = {
   rest: 'Rest',

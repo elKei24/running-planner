@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { weeksBetween } from '@/domain/dates';
 import { downloadText, exportJson, importJson } from '@/io/json';
 import { scheduleToIcs } from '@/io/ics';
 import { formatDuration } from '@/planner/paces';
@@ -83,7 +84,7 @@ function AthleteSettings() {
   return (
     <form class="card" onSubmit={save}>
       <h2>Athlete</h2>
-      <AthleteFields value={form} onChange={setForm} goalKm={s.goal.distanceKm} />
+      <AthleteFields value={form} onChange={setForm} goalKm={s.goal.distanceKm} weeksToRace={weeksBetween(todayDate.value, s.goal.date)} />
       <label class="checks" style={{ marginTop: 12 }}>
         <label>
           <input type="checkbox" checked={rebaseline} onChange={(e) => setRebaseline((e.currentTarget as HTMLInputElement).checked)} />

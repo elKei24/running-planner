@@ -57,6 +57,19 @@ describe('computeVolumes', () => {
     expect(raced[7]!.targetKm).toBeCloseTo(plain[7]!.targetKm, 0);
   });
 
+  it('holds a maintain segment at its target factor and re-ramps for the final block', () => {
+    const phases = periodize(57, 'fast').phases;
+    const vols = computeVolumes(37, 70, inputs(phases.map((phase) => phase), Object.fromEntries(phases.map((p, i) => [i, { targetFactor: p === 'maintain' ? 0.9 : 1 }]))));
+    expect(vols[15]!.targetKm).toBeCloseTo(70, 0); // end of the initial block
+    for (let i = 16; i < 45; i++) expect(vols[i]!.targetKm).toBeCloseTo(63, 0);
+    // The final block (build + peak share one target) re-ramps from 63 to 70 by its last week.
+    expect(vols[45]!.targetKm).toBeGreaterThan(63);
+    expect(vols[45]!.targetKm).toBeLessThan(70);
+    expect(vols[50]!.targetKm).toBeGreaterThan(vols[45]!.targetKm);
+    expect(vols[53]!.targetKm).toBeCloseTo(70, 0);
+    expect(vols[56]!.targetKm).toBeLessThan(30); // race week
+  });
+
   it('never exceeds the peak or the ramp limit for any level/peak/length', () => {
     fc.assert(
       fc.property(

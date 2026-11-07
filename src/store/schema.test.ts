@@ -32,6 +32,8 @@ describe('validateState', () => {
     expect(() => validateState({ ...valid, log: [{ id: 'l1', date: '2026-11-03', distanceKm: 8 }, { id: 'l1', date: '2026-11-04', distanceKm: 8 }] })).toThrow(/unique/);
     expect(() => validateState({ ...valid, version: 99 })).toThrow(/version/);
     expect(() => validateState({ ...valid, prefs: { units: 'furlongs' } })).toThrow(/units/);
+    expect(() => validateState({ ...valid, athlete: { ...valid.athlete, buildStrategy: 'yolo' } })).toThrow(/buildStrategy/);
+    expect(validateState({ ...valid, athlete: { ...valid.athlete, buildStrategy: 'fast' } }).athlete.buildStrategy).toBe('fast');
   });
 
   it('normalises availability days (dedupe + sort) and optional fields', () => {

@@ -12,6 +12,13 @@ export interface Prefs {
 
 export type Priority = 'B' | 'C';
 
+/**
+ * How to use the available weeks. 'steady' ramps evenly to the peak by the end of the
+ * peak phase; 'fast' reaches peak volume in ~16 weeks, maintains, then runs a 12-week
+ * marathon block (only differs from 'steady' beyond 24 weeks).
+ */
+export type BuildStrategy = 'steady' | 'fast';
+
 export interface ReferenceRace {
   distanceKm: number;
   timeSec: number;
@@ -29,6 +36,8 @@ export interface Athlete {
   peakWeeklyKm: number;
   /** A recent race used to derive training paces (optional). */
   referenceRace?: ReferenceRace;
+  /** Defaults to 'steady' when absent. */
+  buildStrategy?: BuildStrategy;
 }
 
 export interface Goal {
@@ -78,7 +87,7 @@ export interface PlannerState {
   prefs: Prefs;
 }
 
-export type Phase = 'base' | 'build' | 'peak' | 'taper';
+export type Phase = 'base' | 'build' | 'maintain' | 'peak' | 'taper';
 
 export type SessionType =
   | 'rest'

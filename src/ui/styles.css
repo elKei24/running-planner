@@ -15,6 +15,7 @@
   --info-soft: #e0ecff;
   --phase-base: #60a5fa;
   --phase-build: #34d399;
+  --phase-maintain: #22d3ee;
   --phase-peak: #f59e0b;
   --phase-taper: #a78bfa;
   --type-easy: #93c5fd;
@@ -118,6 +119,7 @@ legend { padding: 0 6px; font-weight: 700; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #15202b; }
 .badge.phase-base { background: var(--phase-base); }
 .badge.phase-build { background: var(--phase-build); }
+.badge.phase-maintain { background: var(--phase-maintain); }
 .badge.phase-peak { background: var(--phase-peak); }
 .badge.phase-taper { background: var(--phase-taper); }
 .badge.type-easy { background: var(--type-easy); }

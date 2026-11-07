@@ -1,4 +1,4 @@
-import { addDays, dateRange, startOfWeek, weekday, weeksBetween } from '@/domain/dates';
+import { addDays, dateRange, formatDate, startOfWeek, weekday, weeksBetween } from '@/domain/dates';
 import type { LocalDate, Weekday } from '@/domain/dates';
 import type {
   BlockEvent,
@@ -12,10 +12,10 @@ import type {
 import { applyGoalRace, applyRaces } from './events';
 import { estimateFitness } from './fitness';
 import { formatDuration, paceZones, vdotFromRace } from './paces';
-import { periodize } from './periodize';
-import { buildWeek, establishedLongRunFloor, marathonLongRunFloor, MAX_LONG_RUN_KM } from './template';
+import { FAST_STRATEGY_MIN_WEEKS, periodize, phasePosition } from './periodize';
+import { buildWeek, establishedLongRunFloor, maintainLongRunBoost, marathonLongRunFloor, MAX_LONG_RUN_KM } from './template';
 import type { WeekTemplateInput } from './template';
-import { computeVolumes } from './volume';
+import { computeVolumes, MAINTAIN_FACTOR } from './volume';
 import type { WeekVolumeInput } from './volume';
 
 export const B_RACE_WEEK_FACTOR = 0.85;
@@ -40,7 +40,8 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     return { weeks: [], warnings, paces, fitness, anchorDate };
   }
 
-  const { phases } = periodize(totalWeeks);
+  const strategy = state.athlete.buildStrategy ?? 'steady';
+  const { phases } = periodize(totalWeeks, strategy);
   const createdWeek = startOfWeek(state.createdAt);
   const races = state.events.filter((e): e is RaceEvent => e.kind === 'race');
   const blocks = state.events.filter((e): e is BlockEvent => e.kind === 'block');
@@ -63,7 +64,7 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
       i !== lastPeakIdx - 1 &&
       blockedDays < 3;
     const hasBRace = races.some((r) => r.priority === 'B' && startOfWeek(r.date) === start);
-    return { phase, isStepBack, blockedDays, raceFactor: hasBRace ? B_RACE_WEEK_FACTOR : 1 };
+    return { phase, isStepBack, blockedDays, raceFactor: hasBRace ? B_RACE_WEEK_FACTOR : 1, targetFactor: phase === 'maintain' ? MAINTAIN_FACTOR : 1 };
   });
   const volumes = computeVolumes(fitness.levelKm, state.athlete.peakWeeklyKm, volumeInputs);
 
@@ -94,14 +95,15 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     const isRaceWeek = startOfWeek(state.goal.date) === start;
     // The week the plan was created in is usually partial: pro-rate its volume.
     const partial = start === createdWeek ? (7 - weekday(state.createdAt)) / 7 : 1;
-    const phaseOrdinal = i - phases.indexOf(phase);
-    const phaseLength = phases.filter((p) => p === phase).length;
+    const { ordinal: phaseOrdinal, length: phaseLength } = phasePosition(phases, i);
     const easyOnly = i < easyOnlyWeeks && phase !== 'taper';
     // Never below what the athlete already runs (share of the full week, so a partial
     // first week keeps its long run), and at least the marathon target in the peak phase.
+    const finalBuild = phase === 'build' && phases[i + (phaseLength - phaseOrdinal)] === 'peak';
     const longFloorKm = Math.max(
       establishedLongRunFloor(fitness.longRunKm, vol.targetKm),
-      easyOnly ? 0 : marathonLongRunFloor(state.goal.distanceKm, phase, vol.targetKm * partial, phaseOrdinal),
+      easyOnly ? 0 : marathonLongRunFloor(state.goal.distanceKm, phase, vol.targetKm * partial, phaseOrdinal, finalBuild),
+      easyOnly || vin.isStepBack ? 0 : maintainLongRunBoost(phase, vol.targetKm, phaseOrdinal),
     );
     const input: WeekTemplateInput = {
       index: i,
@@ -131,6 +133,10 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     if (vin.blockedDays > 0) notes.push(`${vin.blockedDays} day${vin.blockedDays > 1 ? 's' : ''} blocked this week; volume reduced.`);
     if (override) notes.push('Custom availability applied this week.');
     if (vin.raceFactor < 1) notes.push('Tune-up race this week: slightly reduced volume around it.');
+    if (phase === 'maintain') {
+      const blockStart = weekStarts[phases.indexOf('build', i)];
+      notes.push(`Maintaining about ${Math.round(MAINTAIN_FACTOR * 100)} % of peak volume with varied quality.${blockStart ? ` The marathon block starts ${formatDate(blockStart, { year: true })}.` : ''}`);
+    }
     return { index: i, startDate: start, phase, targetKm: vol.targetKm, isStepBack: vin.isStepBack, isRaceWeek, sessions, notes };
   });
 
@@ -175,6 +181,9 @@ function collectWarnings(
     out.push({ level: 'danger', message: `Only ${totalWeeks} week${totalWeeks === 1 ? '' : 's'} to race day. A marathon build normally needs 12–18 weeks; expect a compressed plan.` });
   } else if (totalWeeks < 12) {
     out.push({ level: 'warn', message: `${totalWeeks} weeks to race day is on the short side. 16 weeks is a comfortable marathon build.` });
+  }
+  if ((state.athlete.buildStrategy ?? 'steady') === 'fast' && totalWeeks < FAST_STRATEGY_MIN_WEEKS) {
+    out.push({ level: 'info', message: `"Build fast, then maintain" only differs from a steady build beyond ${FAST_STRATEGY_MIN_WEEKS - 1} weeks; with ${totalWeeks} weeks the plan is a steady build.` });
   }
   if (levelKm < 20) {
     out.push({ level: 'warn', message: `Current volume is about ${Math.round(levelKm)} km/week. The plan ramps gently; consider a later race if you are starting from scratch.` });

@@ -4,6 +4,8 @@ import { taperFractions } from './periodize';
 
 export const STEP_BACK_FACTOR = 0.8;
 export const MIN_LEVEL_KM = 8;
+/** Share of peak volume held during a maintain phase. */
+export const MAINTAIN_FACTOR = 0.9;
 
 export interface WeekVolumeInput {
   phase: Phase;
@@ -12,6 +14,8 @@ export interface WeekVolumeInput {
   blockedDays: number;
   /** Multiplier applied for a tune-up race in this week (mini taper). */
   raceFactor: number;
+  /** Share of the peak this week's segment aims for (1 normally, 0.9 while maintaining). */
+  targetFactor?: number;
 }
 
 export interface WeekVolume {
@@ -43,13 +47,21 @@ export function computeVolumes(levelKm: number, peakKm: number, weeks: WeekVolum
     const w = weeks[i]!;
     let planned: number;
     if (w.phase !== 'taper') {
-      const rampWeeks = countRampWeeks(weeks, i, lastPeakIdx);
+      const factor = w.targetFactor ?? 1;
+      const target = peak * factor;
+      // Ramp towards the target of this segment (weeks sharing the same target factor).
+      let segmentEnd = i;
+      while (segmentEnd < lastPeakIdx && weeks[segmentEnd + 1]!.phase !== 'taper' && (weeks[segmentEnd + 1]!.targetFactor ?? 1) === factor) segmentEnd++;
+      const rampWeeks = countRampWeeks(weeks, i, segmentEnd);
       if (!w.isStepBack) {
-        const rate = level >= peak ? 1 : Math.min(MAX_WEEKLY_RAMP, Math.pow(peak / level, 1 / rampWeeks));
-        level = Math.min(Math.max(level, peak), level * rate);
+        const rate = level >= target ? 1 : Math.min(MAX_WEEKLY_RAMP, Math.pow(target / level, 1 / rampWeeks));
+        level = Math.min(Math.max(level, target), level * rate);
       }
-      lastPeakLevel = Math.min(level, peak);
+      lastPeakLevel = Math.min(level, target);
       planned = w.isStepBack ? lastPeakLevel * STEP_BACK_FACTOR : lastPeakLevel;
+      // While holding below peak, fitness settles at what is actually run, so the
+      // final block ramps up again instead of jumping.
+      if (factor < 1) level = Math.min(level, target);
     } else {
       planned = lastPeakLevel * (fractions[taperIdx] ?? fractions[fractions.length - 1] ?? 0.4);
       taperIdx++;

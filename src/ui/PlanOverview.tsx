@@ -60,7 +60,7 @@ export function PlanOverview() {
           })}
         </div>
         <div class="legend">
-          {(['base', 'build', 'peak', 'taper'] as const).map((p) => (
+          {(['base', 'build', 'maintain', 'peak', 'taper'] as const).map((p) => (
             <span key={p}>
               <span class="dot" style={{ background: `var(--phase-${p})` }} />
               {PHASE_LABEL[p]}
