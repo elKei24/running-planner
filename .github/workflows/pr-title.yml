@@ -1,0 +1,37 @@
+# The PR title becomes the squash-merge commit message on main, and semantic-release derives
+# the next version from it. So the title must follow Conventional Commits, e.g.
+#   feat(planner): shorten the taper for half marathons
+#   fix: keep the long run when the week is tiny
+#   feat!: drop support for schema version 1
+name: PR title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  lint:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Same list semantic-release knows about (see .releaserc.json).
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            build
+            revert
+            docs
+            style
+            test
+            ci
+            chore
+          requireScope: false

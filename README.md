@@ -30,11 +30,30 @@ the schedule with a pure function, `plan(state, today)`. See [docs/architecture.
 for the design, [docs/training-science.md](docs/training-science.md) for the training principles and
 their sources, and [docs/decisions](docs/decisions) for the decision records.
 
-## Deployment
+## Contributing, releases and deployment
 
-Every push runs CI (typecheck, lint, tests with coverage, build). Pushes to `main` build with
-`BASE_PATH=/running-planner/` and deploy to GitHub Pages via `actions/deploy-pages`. In the
-repository settings, set *Pages → Source* to **GitHub Actions** once.
+All changes go through pull requests that are **squash merged** into `main`. The PR title becomes
+the commit message and must follow [Conventional Commits](https://www.conventionalcommits.org/)
+(`feat: ...`, `fix(planner): ...`, `feat!: ...`); a workflow checks it. Every PR runs CI (typecheck,
+lint, tests with coverage, build).
+
+Every push to `main` runs the release workflow:
+
+1. [semantic-release](https://semantic-release.gitbook.io/) works out the next version from the
+   commits since the last tag: `feat` bumps the minor version, `fix`/`perf`/`refactor`/`build` the
+   patch version, a `!` after the type or a `BREAKING CHANGE:` footer the major version. `docs`,
+   `test`, `ci`, `chore` and `style` commits do not release.
+2. If a release is due, it tags `main` (`vX.Y.Z`) and creates a GitHub release with generated notes.
+3. That tag is built with `APP_VERSION=X.Y.Z` and `BASE_PATH=/running-planner/` and deployed to
+   GitHub Pages. The settings page shows the version; development builds show `dev-<commit>`.
+
+To redeploy an existing release, run the *Release* workflow manually with its tag.
+
+One-time repository setup, after this workflow has landed on `main`: run
+`scripts/github-setup.sh` (needs the GitHub CLI) or apply the same in the settings UI: squash
+merge only with the commit message taken from the PR title and description, a ruleset on `main`
+that requires a PR and the *Typecheck, lint, test, build* and *Validate PR title* checks, and
+*Pages → Source* set to **GitHub Actions**.
 
 ## License
 
