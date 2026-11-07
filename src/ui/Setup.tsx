@@ -42,23 +42,32 @@ export function Setup() {
 
   return (
     <form onSubmit={submit} class="stack">
-      <div class="card">
+      <div class="hero">
+        <span class="eyebrow">No account · no server · adapts every week</span>
         <h1>Plan your marathon</h1>
-        <p class="muted">
+        <p>
           Everything stays in this browser. The plan is recomputed from your goal, your log and your calendar every time you open the app, so skipped
           weeks, holidays and tune-up races are handled automatically.
         </p>
       </div>
-      <div class="card">
-        <h2>Your goal</h2>
-        <GoalFields value={goal} onChange={onGoal} />
+      <div class="card step">
+        <span class="no" aria-hidden="true">1</span>
+        <div>
+          <h2>Your goal</h2>
+          <GoalFields value={goal} onChange={onGoal} />
+        </div>
       </div>
-      <div class="card">
-        <h2>Where you are now</h2>
-        <AthleteFields value={athlete} onChange={onAthlete} goalKm={Number(goal.distanceKm) || 42.195} weeksToRace={weeksToRace} />
+      <div class="card step">
+        <span class="no" aria-hidden="true">2</span>
+        <div>
+          <h2>Where you are now</h2>
+          <AthleteFields value={athlete} onChange={onAthlete} goalKm={Number(goal.distanceKm) || 42.195} weeksToRace={weeksToRace} />
+        </div>
       </div>
       {error && <div class="alert danger" role="alert">{error}</div>}
-      <button class="btn primary" type="submit">Create my plan</button>
+      <div class="row">
+        <button class="btn primary" type="submit" style={{ minHeight: 48, paddingInline: 24 }}>Create my plan</button>
+      </div>
     </form>
   );
 }

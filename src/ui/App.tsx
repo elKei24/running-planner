@@ -7,7 +7,7 @@ import { PlanOverview } from './PlanOverview';
 import { LogView } from './LogView';
 import { EventsView } from './EventsView';
 import { SettingsView } from './SettingsView';
-import { Nav } from './Nav';
+import { Mark, Nav } from './Nav';
 
 export function App() {
   const s = state.value;
@@ -16,7 +16,7 @@ export function App() {
     <div class="app">
       <header class="topbar">
         <a class="brand" href="#/">
-          <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" />
+          <Mark />
           Running Planner
         </a>
         {s && <Nav />}

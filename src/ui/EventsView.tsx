@@ -18,14 +18,14 @@ export function EventsView() {
       <div class="card">
         <h2>Races, breaks and availability</h2>
         <p class="muted">Anything you add here is folded into the plan immediately: tune-up races get a mini taper and recovery, blocked days are removed and the volume re-ramps afterwards.</p>
-        <div class="checks" role="tablist">
+        <div class="checks segmented" role="tablist">
           {(['race', 'block', 'availability'] as Tab[]).map((t) => (
             <label key={t}>
               <input type="radio" name="tab" checked={tab === t} onChange={() => setTab(t)} /> {t === 'race' ? 'Tune-up race' : t === 'block' ? 'Break / injury' : 'Week availability'}
             </label>
           ))}
         </div>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 16 }}>
           {tab === 'race' && <RaceForm />}
           {tab === 'block' && <BlockForm />}
           {tab === 'availability' && <AvailabilityForm />}

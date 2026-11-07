@@ -4,7 +4,7 @@ import { addDays, diffDays, formatDate, startOfWeek } from '@/domain/dates';
 import type { LogEntry, Session, Week } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
 import { entriesOn, excludeDay, schedule, state, todayDate } from '@/store/state';
-import { km, paceRange, PHASE_LABEL } from './format';
+import { km, paceRange, PHASE_LABEL, TYPE_LABEL } from './format';
 import { LogDialog } from './LogDialog';
 import { SessionCard } from './SessionCard';
 import { Warnings } from './Warnings';
@@ -78,7 +78,9 @@ export function WeekView() {
       {week.startDate === anchor && todaySession && <TodayCard session={todaySession} entries={entries(today)} onLog={() => setLogging(todaySession)} />}
       {week.startDate === anchor && <PlanHealth />}
       <div class="weeknav">
-        <button class="btn small" type="button" onClick={() => go(-1)} disabled={!canGoBack} aria-label="Previous week">←</button>
+        <button class="btn icon" type="button" onClick={() => go(-1)} disabled={!canGoBack} aria-label="Previous week">
+          <Chevron dir="left" />
+        </button>
         <h2>
           {isPast ? (
             <>{weeksBack === 1 ? 'Last week' : `${weeksBack} weeks ago`}</>
@@ -88,16 +90,20 @@ export function WeekView() {
             </>
           )}
         </h2>
-        <button class="btn small" type="button" onClick={() => go(1)} disabled={!isPast && idx === sched.weeks.length - 1} aria-label="Next week">→</button>
+        <button class="btn icon" type="button" onClick={() => go(1)} disabled={!isPast && idx === sched.weeks.length - 1} aria-label="Next week">
+          <Chevron dir="right" />
+        </button>
       </div>
       <WeekHeader week={week} logged={logged} isCurrent={week.startDate === anchor} />
-      <div class="list">
+      <div class="timeline">
         {week.sessions.map((x) => (
           <SessionCard key={x.id} session={x} entries={entries(x.date)} today={today} onLog={(sess) => setLogging(sess)} onExclude={exclude} />
         ))}
       </div>
       {week.startDate !== anchor && (
-        <button class="btn ghost" type="button" onClick={() => (selectedWeekStart.value = null)}>Back to this week</button>
+        <div class="row">
+          <button class="btn" type="button" onClick={() => (selectedWeekStart.value = null)}>Back to this week</button>
+        </div>
       )}
       {logging && (
         <LogDialog date={logging.date} session={logging} existing={entries(logging.date)[0]} onClose={() => setLogging(null)} />
@@ -106,22 +112,31 @@ export function WeekView() {
   );
 }
 
+function Chevron({ dir }: { dir: 'left' | 'right' }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={dir === 'left' ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} />
+    </svg>
+  );
+}
+
 function WeekHeader({ week, logged, isCurrent }: { week: Week; logged: number; isCurrent: boolean }) {
   const end = addDays(week.startDate, 6);
   return (
-    <div class="card tight">
-      <div class="row between">
+    <div>
+      <div class="week-meta">
         <div>
           <strong>{formatDate(week.startDate)} – {formatDate(end, { year: true })}</strong>
-          {week.isStepBack && <span class="muted"> · step-back</span>}
-          {week.isRaceWeek && <span class="muted"> · race week</span>}
+          {week.isStepBack && <span class="tags"> · step-back</span>}
+          {week.isRaceWeek && <span class="tags"> · race week</span>}
         </div>
-        <div class="muted">
-          {week.targetKm > 0 ? `${km(week.targetKm)} planned` : 'Past week'}{logged > 0 ? ` · ${km(Math.round(logged * 10) / 10)} logged` : ''}
+        <div class="totals">
+          {week.targetKm > 0 ? <><b>{km(week.targetKm)}</b> planned</> : 'Past week'}
+          {logged > 0 ? <> · <b>{km(Math.round(logged * 10) / 10)}</b> logged</> : ''}
         </div>
       </div>
       {week.notes.length > 0 && (
-        <ul class="muted" style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.9rem' }}>
+        <ul class="week-notes">
           {week.notes.map((n) => (
             <li key={n}>{n}</li>
           ))}
@@ -136,18 +151,21 @@ function TodayCard({ session, entries, onLog }: { session: Session; entries: Log
   const done = entries.some((e) => !e.skipped && e.distanceKm > 0);
   const skipped = entries.some((e) => e.skipped);
   return (
-    <div class="card today-card">
-      <div class="row between">
+    <div class={`card today-card type-${session.type}`}>
+      <div class="today-head">
+        <span>Today · {formatDate(session.date, { weekday: true })}</span>
+        <span class={`badge type-${session.type}`} style={{ color: 'inherit' }}>{TYPE_LABEL[session.type]}</span>
+      </div>
+      <div class="today-body">
         <div>
-          <div class="muted" style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Today</div>
-          <h2 style={{ margin: 0 }}>{session.title}</h2>
+          <h2>{session.title}</h2>
           {session.distanceKm > 0 && (
-            <div class="muted">
+            <div class="meta">
               {km(session.distanceKm)}
               {session.pace ? ` · ${paceRange(session.pace)}` : ''}
             </div>
           )}
-          <p style={{ margin: '6px 0 0' }}>{session.description}</p>
+          <p>{session.description}</p>
         </div>
         <div class="actions">
           {done && <span class="status done">✓ Done</span>}
@@ -193,23 +211,29 @@ function Summary({ daysToRace }: { daysToRace: number }) {
   const sched = schedule.value!;
   const f = sched.fitness;
   return (
-    <div class="card tight">
-      <div class="row between">
-        <div class="stat">
-          <span class="value">{daysToRace}</span>
-          <span class="label">days to {s.goal.name ?? 'race day'}</span>
+    <section class="board" aria-label="Race countdown">
+      <div class="headline">
+        <span class="display count num">{daysToRace}</span>
+        <div class="count-label">
+          <strong>{daysToRace === 1 ? 'day' : 'days'} to {s.goal.name ?? 'race day'}</strong>
+          <span>
+            {formatDate(s.goal.date, { weekday: true, year: true })} · {km(s.goal.distanceKm)}
+            {s.goal.targetTimeSec ? ` · target ${formatDuration(s.goal.targetTimeSec)}` : ''}
+          </span>
         </div>
+      </div>
+      <div class="facts">
         <div class="stat">
           <span class="value">{Math.round(f.levelKm)} km</span>
-          <span class="label">current weekly level</span>
+          <span class="label">weekly level</span>
         </div>
         {sched.paces && (
           <div class="stat">
             <span class="value">{formatDuration(sched.paces.predictedGoalTimeSec)}</span>
-            <span class="label">predicted finish{s.goal.targetTimeSec ? ` (target ${formatDuration(s.goal.targetTimeSec)})` : ''}</span>
+            <span class="label">predicted finish</span>
           </div>
         )}
       </div>
-    </div>
+    </section>
   );
 }

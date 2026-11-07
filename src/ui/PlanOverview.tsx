@@ -31,15 +31,39 @@ export function PlanOverview() {
     navigate('week');
   };
 
+  const phases = weeks.reduce<Array<{ phase: Week['phase']; n: number }>>((acc, w) => {
+    const last = acc[acc.length - 1];
+    if (last && last.phase === w.phase) last.n += 1;
+    else acc.push({ phase: w.phase, n: 1 });
+    return acc;
+  }, []);
+
   return (
     <div class="stack">
       <div class="card">
-        <h2>Weekly volume</h2>
-        <p class="muted">Bars are planned km (lighter = step-back week). The dark line is what you actually logged.</p>
+        <div class="section-head">
+          <h2>The road to race day</h2>
+          <span class="muted num">{weeks.length} weeks</span>
+        </div>
+        <div class="ribbon" role="img" aria-label={phases.map((p) => `${PHASE_LABEL[p.phase]} ${p.n} weeks`).join(', ')}>
+          {phases.map((p, i) => (
+            <div key={i} class="seg" style={{ flex: p.n, background: `var(--phase-${p.phase})` }} title={`${PHASE_LABEL[p.phase]}: ${p.n} week${p.n > 1 ? 's' : ''}`}>
+              <span>{PHASE_LABEL[p.phase]}{p.n > 2 ? ` · ${p.n}` : ''}</span>
+            </div>
+          ))}
+        </div>
+        <div class="ribbon-scale">
+          <span>{formatDate(weeks[0]!.startDate)}</span>
+          <span>{formatDate(s.goal.date, { weekday: true })} 🏁</span>
+        </div>
+        <div class="section-head">
+          <h3>Weekly volume</h3>
+          <span class="hint">planned per week · past weeks show what you logged</span>
+        </div>
         <div class="bars" role="list">
           {history.slice(-8).map((h) => (
-            <div key={h.startDate} class="bar" role="listitem" title={`${formatDate(h.startDate)}: logged ${km(h.km)}`}>
-              <div class="fill" style={{ height: `${(h.km / maxKm) * 100}%`, background: 'var(--border)' }} />
+            <div key={h.startDate} class="bar past" role="listitem" title={`${formatDate(h.startDate)}: logged ${km(h.km)}`}>
+              <div class="fill" style={{ height: `${(h.km / maxKm) * 100}%` }} />
             </div>
           ))}
           {weeks.map((w) => {
@@ -67,13 +91,18 @@ export function PlanOverview() {
             </span>
           ))}
           <span>
-            <span class="dot" style={{ background: 'var(--border)' }} />
+            <span class="dot past" />
             Past weeks (logged)
+          </span>
+          <span>
+            <span class="dot" style={{ background: 'var(--phase-base)', opacity: 0.5 }} />
+            Step-back
           </span>
         </div>
       </div>
       <div class="card">
         <h2>All weeks</h2>
+        <div class="table-wrap">
         <table class="weeks">
           <thead>
             <tr>
@@ -91,18 +120,19 @@ export function PlanOverview() {
               const keys = w.sessions.filter((x) => ['tempo', 'intervals', 'marathonPace', 'race'].includes(x.type)).map((x) => x.title);
               return (
                 <tr key={w.startDate} class={w.startDate === anchor ? 'current' : ''} onClick={() => open(w)}>
-                  <td>{w.index + 1}</td>
+                  <td class="idx">{w.index + 1}</td>
                   <td>{formatDate(w.startDate)}{w.isRaceWeek ? ' 🏁' : ''}</td>
                   <td><span class={`badge phase-${w.phase}`}>{PHASE_LABEL[w.phase]}</span>{w.isStepBack ? ' ↓' : ''}</td>
                   <td>{km(w.targetKm)}</td>
                   <td>{long ? km(long.distanceKm) : '–'}</td>
-                  <td class="muted">{keys.join(', ') || '–'}</td>
+                  <td class="muted keys">{keys.join(', ') || '–'}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        <p class="muted" style={{ marginTop: 8 }}>
+        </div>
+        <p class="muted" style={{ marginTop: 12, marginBottom: 0 }}>
           Race day {formatDate(s.goal.date, { weekday: true, year: true })}. The plan ends {formatDate(addDays(s.goal.date, 1))}.
         </p>
       </div>
