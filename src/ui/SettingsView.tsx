@@ -19,7 +19,7 @@ export function SettingsView() {
         <div class="card">
           <h2>Training paces</h2>
           <p class="muted">Derived from your reference race (VDOT {sched.paces.vdot.toFixed(1)}). Predicted marathon: {formatDuration(sched.paces.predictedGoalTimeSec)}.</p>
-          <table class="weeks">
+          <table class="paces">
             <tbody>
               <tr><td>Easy / long</td><td>{paceRange(sched.paces.easy)}</td></tr>
               <tr><td>Marathon</td><td>{paceRange(sched.paces.marathon)}</td></tr>
@@ -31,7 +31,7 @@ export function SettingsView() {
       )}
       <div class="card">
         <h2>Display</h2>
-        <div class="checks" role="radiogroup" aria-label="Units">
+        <div class="checks segmented" role="radiogroup" aria-label="Units">
           <label>
             <input type="radio" name="units" checked={s.prefs.units === 'km'} onChange={() => setUnits('km')} /> Kilometres
           </label>
@@ -139,7 +139,7 @@ function DataSettings() {
         </div>
       )}
       {msg && <div class={`alert ${msg.startsWith('Import failed') ? 'danger' : 'info'}`} style={{ marginTop: 12 }}>{msg}</div>}
-      <hr style={{ border: 0, borderTop: '1px solid var(--border)', margin: '16px 0' }} />
+      <hr class="rule" />
       {!confirmReset ? (
         <button class="btn danger" type="button" onClick={() => setConfirmReset(true)}>Delete plan and start over</button>
       ) : (
@@ -149,7 +149,7 @@ function DataSettings() {
           <button class="btn" type="button" onClick={() => setConfirmReset(false)}>Cancel</button>
         </div>
       )}
-      <p class="muted" style={{ marginTop: 16 }}>
+      <p class="muted" style={{ marginTop: 16, marginBottom: 0, fontSize: '0.85rem' }}>
         Version {__APP_VERSION__} · <a href="https://github.com/elKei24/running-planner" target="_blank" rel="noreferrer">Source on GitHub</a>
       </p>
     </div>

@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { formatDate } from '@/domain/dates';
+import { formatDate, WEEKDAY_NAMES, weekday } from '@/domain/dates';
 import { rpeLabel } from '@/domain/rpe';
 import type { LogEntry } from '@/domain/types';
 import { parseActivity } from '@/io/gpx';
@@ -45,7 +45,7 @@ export function LogView() {
         <div class="row between">
           <div>
             <h2>Training log</h2>
-            <span class="muted">{entries.filter((e) => !e.skipped).length} runs · {km(Math.round(total * 10) / 10)}</span>
+            <span class="muted num">{entries.filter((e) => !e.skipped).length} runs · {km(Math.round(total * 10) / 10)}</span>
           </div>
           <div class="row">
             <label class="btn">
@@ -57,15 +57,21 @@ export function LogView() {
         </div>
         {importError && <div class="alert danger" style={{ marginTop: 12 }}>{importError}</div>}
       </div>
-      <div class="list">
+      <div class="list ledger">
         {entries.length === 0 && <p class="empty">Nothing logged yet. Runs you log here (or from the week view) shape the plan going forward.</p>}
         {entries.map((e) => (
           <div key={e.id} class="item">
-            <div>
-              <strong>{formatDate(e.date, { weekday: true, year: true })}</strong>
-              <div class="muted">
-                {e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)}` : ''}${e.rpe ? ` · RPE ${e.rpe} (${rpeLabel(e.rpe).toLowerCase()})` : ''}`}
-                {e.note ? ` · ${e.note}` : ''}
+            <div class="when" aria-hidden="true">
+              <span class="dow">{WEEKDAY_NAMES[weekday(e.date)]}</span>
+              <span class="dom">{Number(e.date.slice(8, 10))}</span>
+              <span class="mon">{formatDate(e.date, { year: true }).replace(/^\d+ /, '')}</span>
+            </div>
+            <div class="what">
+              <span class="sr-only">{formatDate(e.date, { weekday: true, year: true })}</span>
+              <div class={`big ${e.skipped ? 'skipped' : ''}`}>{e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)}` : ''}`}</div>
+              <div class="sub">
+                {e.skipped ? '' : e.rpe ? `RPE ${e.rpe} (${rpeLabel(e.rpe).toLowerCase()})` : ''}
+                {e.note ? `${!e.skipped && e.rpe ? ' · ' : ''}${e.note}` : ''}
               </div>
             </div>
             <button class="btn small" type="button" onClick={() => setEditing({ date: e.date, entry: e })}>Edit</button>
