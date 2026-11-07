@@ -12,6 +12,25 @@ import { Warnings } from './Warnings';
 /** Week currently shown; null means "the current week". Shared with the plan overview. */
 export const selectedWeekStart = signal<string | null>(null);
 
+/** How far back the week view can go. Plans are not kept for past weeks; logged runs are shown. */
+export const PAST_WEEKS_LIMIT = 52;
+
+export function pastWeek(startDate: string, index: number): Week {
+  return {
+    index,
+    startDate,
+    phase: 'base',
+    targetKm: 0,
+    isStepBack: false,
+    isRaceWeek: false,
+    sessions: Array.from({ length: 7 }, (_, i) => {
+      const date = addDays(startDate, i);
+      return { id: `${date}-past`, date, type: 'rest' as const, distanceKm: 0, phase: 'base' as const, title: 'Past day', description: 'The plan is not kept for past weeks; your logged runs are shown here.' };
+    }),
+    notes: [],
+  };
+}
+
 export function WeekView() {
   const s = state.value!;
   const sched = schedule.value!;
@@ -30,10 +49,18 @@ export function WeekView() {
   }
 
   const start = selectedWeekStart.value ?? anchor;
-  const week = sched.weeks.find((w) => w.startDate === start) ?? sched.weeks[0]!;
+  const isPast = start < anchor;
+  const weeksBack = isPast ? Math.round(diffDays(start, anchor) / 7) : 0;
+  const week = isPast ? pastWeek(start, -weeksBack) : (sched.weeks.find((w) => w.startDate === start) ?? sched.weeks[0]!);
   const idx = week.index;
+  const canGoBack = isPast ? weeksBack < PAST_WEEKS_LIMIT : true;
   const go = (delta: number) => {
-    const next = sched.weeks[idx + delta];
+    const target = addDays(week.startDate, 7 * delta);
+    if (target < anchor) {
+      if (diffDays(target, anchor) / 7 <= PAST_WEEKS_LIMIT) selectedWeekStart.value = target;
+      return;
+    }
+    const next = sched.weeks.find((w) => w.startDate === target);
     if (next) selectedWeekStart.value = next.startDate;
   };
   const daysToRace = diffDays(today, s.goal.date);
@@ -51,11 +78,17 @@ export function WeekView() {
       {week.startDate === anchor && todaySession && <TodayCard session={todaySession} entries={entries(today)} onLog={() => setLogging(todaySession)} />}
       {week.startDate === anchor && <PlanHealth />}
       <div class="weeknav">
-        <button class="btn small" type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous week">←</button>
+        <button class="btn small" type="button" onClick={() => go(-1)} disabled={!canGoBack} aria-label="Previous week">←</button>
         <h2>
-          Week {idx + 1} of {sched.weeks.length} <span class={`badge phase-${week.phase}`}>{PHASE_LABEL[week.phase]}</span>
+          {isPast ? (
+            <>{weeksBack === 1 ? 'Last week' : `${weeksBack} weeks ago`}</>
+          ) : (
+            <>
+              Week {idx + 1} of {sched.weeks.length} <span class={`badge phase-${week.phase}`}>{PHASE_LABEL[week.phase]}</span>
+            </>
+          )}
         </h2>
-        <button class="btn small" type="button" onClick={() => go(1)} disabled={idx === sched.weeks.length - 1} aria-label="Next week">→</button>
+        <button class="btn small" type="button" onClick={() => go(1)} disabled={!isPast && idx === sched.weeks.length - 1} aria-label="Next week">→</button>
       </div>
       <WeekHeader week={week} logged={logged} isCurrent={week.startDate === anchor} />
       <div class="list">
@@ -84,7 +117,7 @@ function WeekHeader({ week, logged, isCurrent }: { week: Week; logged: number; i
           {week.isRaceWeek && <span class="muted"> · race week</span>}
         </div>
         <div class="muted">
-          {km(week.targetKm)} planned{logged > 0 ? ` · ${km(Math.round(logged * 10) / 10)} logged` : ''}
+          {week.targetKm > 0 ? `${km(week.targetKm)} planned` : 'Past week'}{logged > 0 ? ` · ${km(Math.round(logged * 10) / 10)} logged` : ''}
         </div>
       </div>
       {week.notes.length > 0 && (

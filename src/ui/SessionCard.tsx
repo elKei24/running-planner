@@ -25,6 +25,7 @@ export interface SessionCardProps {
 
 export function SessionCard({ session, entries, today, onLog, onExclude }: SessionCardProps) {
   const beforePlan = session.title === 'Before plan start';
+  const pastDay = session.title === 'Past day';
   const status = sessionStatus(session, entries, today);
   const logged = entries.reduce((a, e) => a + (e.skipped ? 0 : e.distanceKm), 0);
   const classes = ['session', session.date === today ? 'today' : '', status === 'done' ? 'done' : '', status === 'missed' ? 'past-missed' : ''].join(' ');
@@ -62,7 +63,7 @@ export function SessionCard({ session, entries, today, onLog, onExclude }: Sessi
         {status === 'done' && <span class="status done">✓ {km(logged)}</span>}
         {status === 'missed' && <span class="status missed">Missed</span>}
         {status === 'skipped' && <span class="status skipped">Skipped</span>}
-        {onLog && session.date <= today && !beforePlan && (
+        {onLog && session.date <= today && (!beforePlan || pastDay) && (
           <button class="btn small" type="button" onClick={() => onLog(session)}>
             {entries.length > 0 ? 'Edit' : 'Log'}
           </button>

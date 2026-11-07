@@ -90,24 +90,23 @@ describe('views', () => {
     expect(screen.getByText('Enter the race distance in km.')).toBeTruthy();
     await type(screen.getByLabelText('Tune-up race distance'), '10');
 
-    // A past race (since the plan started) is logged with its result and can set the paces.
+    // Past dates are rejected: a race already run is logged as a run.
     await type(document.querySelector('input[type=date]')!, '2026-11-05');
-    expect(screen.getByText('Add past race')).toBeTruthy();
-    await type(screen.getByLabelText('Finish time'), '48:30');
     await act(async () => {
-      fireEvent.click(screen.getByText(/Use the result for my training paces/));
+      fireEvent.click(screen.getByText('Add race'));
     });
+    expect(screen.getByText(/Log it as a run instead/)).toBeTruthy();
+    // A planned race that has passed shows its logged result and can set the paces.
+    todayDate.value = '2027-02-01';
+    logRun({ date: '2027-01-24', distanceKm: 21.0975, durationSec: 6000 });
+    await waitFor(() => expect(screen.getByText(/Result: 21.1 km in 1:40:00/)).toBeTruthy()); // the logged run, not the race's nominal distance
     await act(async () => {
-      fireEvent.click(screen.getByText('Add past race'));
+      fireEvent.click(screen.getByText('Use for paces'));
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(3));
-    expect(state.value!.events[2]).toMatchObject({ kind: 'race', date: '2026-11-05', distanceKm: 10 });
-    expect(state.value!.log.find((l) => l.date === '2026-11-05')).toMatchObject({ distanceKm: 10, durationSec: 2910 });
-    expect(state.value!.athlete.referenceRace).toEqual({ distanceKm: 10, timeSec: 2910 });
-    expect(screen.getByText(/Result: 10 km in 48:30/)).toBeTruthy();
+    await waitFor(() => expect(state.value!.athlete.referenceRace).toEqual({ distanceKm: 10, timeSec: 6000 }));
     expect(screen.getByText(/used for your paces/)).toBeTruthy();
-    // The planner picks the recovery up: the race was yesterday, so today's session is easy.
-    expect(schedule.value!.weeks[0]!.sessions.find((x) => x.date === '2026-11-06')!.type).not.toBe('tempo');
+    todayDate.value = '2026-11-06';
+    await type(document.querySelector('input[type=date]')!, '2027-02-07');
 
     // Block form.
     await act(async () => {
@@ -119,8 +118,8 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Block these days'));
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(4));
-    expect(state.value!.events[3]).toMatchObject({ kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' });
+    await waitFor(() => expect(state.value!.events).toHaveLength(3));
+    expect(state.value!.events[2]).toMatchObject({ kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' });
 
     // Availability form.
     await act(async () => {
@@ -129,8 +128,8 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(5));
-    expect(state.value!.events[4]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
+    await waitFor(() => expect(state.value!.events).toHaveLength(4));
+    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
     // Saving again for the same week replaces it.
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));
@@ -142,7 +141,7 @@ describe('views', () => {
     await act(async () => {
       fireEvent.click(screen.getAllByText('Remove')[0]!);
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(4));
+    await waitFor(() => expect(state.value!.events).toHaveLength(3));
   });
 
   it('settings accept a custom goal and reference distance', async () => {

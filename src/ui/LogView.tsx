@@ -56,7 +56,7 @@ export function LogView() {
           </div>
         </div>
         <div class="muted" style={{ marginTop: 8 }}>
-          Ran a race you had not planned? <a href="#/events">Add it as a past race</a> to log the result and get the recovery days.
+          Missed a day? "Log a run" lets you pick any past date, and the week view can go back through earlier weeks.
         </div>
         {importError && <div class="alert danger" style={{ marginTop: 12 }}>{importError}</div>}
       </div>
@@ -75,23 +75,9 @@ export function LogView() {
           </div>
         ))}
       </div>
-      {editing && <LogDialogWithDate date={editing.date} entry={editing.entry} initial={editing.initial} onClose={() => setEditing(null)} />}
-    </div>
-  );
-}
-
-function LogDialogWithDate({ date, entry, initial, onClose }: Editing & { onClose: () => void }) {
-  const [d, setD] = useState(date);
-  if (entry) return <LogDialog date={date} existing={entry} onClose={onClose} />;
-  return (
-    <div>
-      <div class="card tight">
-        <label class="field">
-          Date
-          <input type="date" value={d} max={todayDate.value} onInput={(e) => setD((e.currentTarget as HTMLInputElement).value)} />
-        </label>
-      </div>
-      <LogDialog key={d} date={d} initial={initial} onClose={onClose} />
+      {editing && (
+        <LogDialog date={editing.date} existing={editing.entry} initial={editing.initial} editableDate={!editing.entry} onClose={() => setEditing(null)} />
+      )}
     </div>
   );
 }

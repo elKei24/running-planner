@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { expectedRpe, RPE_SCALE } from '@/domain/rpe';
 import type { LogEntry, Session } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
-import { logRun, removeLog } from '@/store/state';
+import { logRun, removeLog, todayDate } from '@/store/state';
 
 export interface LogDialogProps {
   date: string;
@@ -10,11 +10,14 @@ export interface LogDialogProps {
   existing?: LogEntry;
   /** Pre-filled values, e.g. from an imported GPX file. */
   initial?: { distanceKm?: number; durationSec?: number; note?: string };
+  /** Let the athlete pick the day inside the dialog (for logging past runs). */
+  editableDate?: boolean;
   onClose: () => void;
 }
 
-export function LogDialog({ date, session, existing, initial, onClose }: LogDialogProps) {
+export function LogDialog({ date: initialDate, session, existing, initial, editableDate = false, onClose }: LogDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const [date, setDate] = useState(initialDate);
   const [distance, setDistance] = useState(
     existing ? String(existing.distanceKm) : initial?.distanceKm ? String(initial.distanceKm) : session && session.distanceKm > 0 ? String(session.distanceKm) : '',
   );
@@ -37,6 +40,8 @@ export function LogDialog({ date, session, existing, initial, onClose }: LogDial
 
   const save = (e: Event) => {
     e.preventDefault();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setError('Pick the day you ran.');
+    if (date > todayDate.value) return setError('You cannot log a run in the future.');
     const entry: Omit<LogEntry, 'id'> & { id?: string } = { date, distanceKm: 0 };
     if (existing) entry.id = existing.id;
     if (skipped) {
@@ -65,7 +70,13 @@ export function LogDialog({ date, session, existing, initial, onClose }: LogDial
   return (
     <dialog ref={ref} onClose={onClose} aria-labelledby="log-title">
       <form onSubmit={save} class="stack">
-        <h2 id="log-title">{existing ? 'Edit run' : 'Log run'} · {date}</h2>
+        <h2 id="log-title">{existing ? 'Edit run' : 'Log run'}{editableDate ? '' : ` · ${date}`}</h2>
+        {editableDate && (
+          <label class="field">
+            Date
+            <input type="date" value={date} max={todayDate.value} onInput={(e) => setDate((e.currentTarget as HTMLInputElement).value)} aria-label="Run date" required />
+          </label>
+        )}
         {session && session.distanceKm > 0 && <p class="muted">Planned: {session.title}</p>}
         <label class="checks">
           <label>

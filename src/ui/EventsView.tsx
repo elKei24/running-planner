@@ -2,8 +2,8 @@ import { useState } from 'preact/hooks';
 import { formatDate, startOfWeek, WEEKDAY_NAMES } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
-import { formatDuration, parseDuration } from '@/planner/paces';
-import { addEvent, entriesOn, logRun, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
+import { formatDuration } from '@/planner/paces';
+import { addEvent, entriesOn, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
 import { DISTANCE_PRESETS, km } from './format';
 import { DistanceField } from './forms';
 
@@ -103,31 +103,16 @@ function RaceForm() {
   const [distance, setDistance] = useState('10');
   const [priority, setPriority] = useState<'B' | 'C'>('B');
   const [name, setName] = useState('');
-  const [time, setTime] = useState('');
-  const [logIt, setLogIt] = useState(true);
-  const [useForPaces, setUseForPaces] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isPast = !!date && date <= todayDate.value;
   const submit = (e: Event) => {
     e.preventDefault();
     if (!date) return setError('Pick a date.');
+    if (date < todayDate.value) return setError('The race is in the past. Log it as a run instead (Log → Log a run).');
     const distanceKm = Number(distance);
     if (!(distanceKm > 0)) return setError('Enter the race distance in km.');
-    let durationSec: number | undefined;
-    if (isPast && time.trim()) {
-      durationSec = parseDuration(time);
-      if (durationSec === undefined) return setError('Finish time must look like 48:30 or 1:45:00.');
-    }
     addEvent({ kind: 'race', date, distanceKm, priority, ...(name.trim() ? { name: name.trim() } : {}) });
-    if (isPast && logIt) {
-      logRun({ date, distanceKm, ...(durationSec ? { durationSec } : {}), ...(name.trim() ? { note: name.trim() } : {}) });
-    }
-    if (isPast && useForPaces && durationSec) {
-      updateAthlete({ ...state.value!.athlete, referenceRace: { distanceKm, timeSec: durationSec } }, false);
-    }
     setDate('');
     setName('');
-    setTime('');
     setError(null);
   };
   return (
@@ -146,26 +131,9 @@ function RaceForm() {
           </select>
         </label>
         <label class="field">Name<input type="text" value={name} onInput={(e) => setName((e.currentTarget as HTMLInputElement).value)} placeholder="optional" /></label>
-        {isPast && (
-          <label class="field">
-            Finish time
-            <span class="hint">Already run? Enter the result and it is logged for you.</span>
-            <input type="text" placeholder="h:mm:ss" value={time} onInput={(e) => setTime((e.currentTarget as HTMLInputElement).value)} aria-label="Finish time" />
-          </label>
-        )}
       </div>
-      {isPast && (
-        <div class="checks">
-          <label>
-            <input type="checkbox" checked={logIt} onChange={(e) => setLogIt((e.currentTarget as HTMLInputElement).checked)} /> Log it as a run on that day
-          </label>
-          <label>
-            <input type="checkbox" checked={useForPaces} disabled={!time.trim()} onChange={(e) => setUseForPaces((e.currentTarget as HTMLInputElement).checked)} /> Use the result for my training paces
-          </label>
-        </div>
-      )}
       {error && <div class="alert danger">{error}</div>}
-      <button class="btn primary" type="submit">{isPast ? 'Add past race' : 'Add race'}</button>
+      <button class="btn primary" type="submit">Add race</button>
     </form>
   );
 }
