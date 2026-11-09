@@ -4,11 +4,22 @@ An adaptive marathon training plan that lives entirely in your browser. No accou
 
 **Live app:** https://elkei24.github.io/running-planner/
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/week-dark.png">
+  <img src="docs/screenshots/week-light.png" alt="The week view: the race countdown, today's session, how the last weeks went and the week's sessions on a timeline" width="100%">
+</picture>
+
 - Enter your goal race, your current weekly volume and how many days you can run.
 - Get a periodised plan (base → build → peak → taper) with paces derived from a recent race.
 - Log your runs. Skip a week, go on holiday, add a tune-up race: the plan adjusts itself, because it
   is recomputed from your log and calendar every time you open it.
 - Export a JSON backup or an `.ics` calendar. Works offline once loaded (PWA).
+
+<p>
+  <img src="docs/screenshots/phone-week.png" width="32%" alt="The week view on a phone">
+  <img src="docs/screenshots/phone-plan.png" width="32%" alt="The plan overview on a phone: phases and weekly volume up to race day">
+  <img src="docs/screenshots/phone-log.png" width="32%" alt="The training log on a phone">
+</p>
 
 ## Development
 
