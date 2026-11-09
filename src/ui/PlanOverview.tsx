@@ -100,7 +100,7 @@ export function PlanOverview() {
           </span>
         </div>
       </div>
-      <div class="card">
+      <div class="card stack">
         <h2>All weeks</h2>
         <div class="table-wrap">
         <table class="weeks">
@@ -132,7 +132,7 @@ export function PlanOverview() {
           </tbody>
         </table>
         </div>
-        <p class="muted" style={{ marginTop: 12, marginBottom: 0 }}>
+        <p class="muted">
           Race day {formatDate(s.goal.date, { weekday: true, year: true })}. The plan ends {formatDate(addDays(s.goal.date, 1))}.
         </p>
       </div>

@@ -156,7 +156,7 @@ function TodayCard({ session, entries, maxHr, onLog }: { session: Session; entri
     <div class={`card today-card type-${session.type}`}>
       <div class="today-head">
         <span>Today · {formatDate(session.date, { weekday: true })}</span>
-        <span class={`badge type-${session.type}`} style={{ color: 'inherit' }}>{TYPE_LABEL[session.type]}</span>
+        <span class={`badge type-${session.type}`}>{TYPE_LABEL[session.type]}</span>
       </div>
       <div class="today-body">
         <div>

@@ -80,11 +80,11 @@ export function LogDialog({ date: initialDate, session, existing, initial, edita
           </label>
         )}
         {session && session.distanceKm > 0 && <p class="muted">Planned: {session.title}</p>}
-        <label class="checks">
+        <div class="checks">
           <label>
             <input type="checkbox" checked={skipped} onChange={(e) => setSkipped((e.currentTarget as HTMLInputElement).checked)} /> I skipped this day
           </label>
-        </label>
+        </div>
         {!skipped && (
           <div class="grid">
             <label class="field">
