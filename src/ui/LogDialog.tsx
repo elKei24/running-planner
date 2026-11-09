@@ -3,6 +3,7 @@ import { expectedRpe, RPE_SCALE } from '@/domain/rpe';
 import type { LogEntry, Session } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
 import { logRun, removeLog, todayDate } from '@/store/state';
+import { durationInput } from './format';
 
 export interface LogDialogProps {
   date: string;
@@ -92,7 +93,18 @@ export function LogDialog({ date: initialDate, session, existing, initial, edita
             </label>
             <label class="field">
               Duration
-              <input type="text" placeholder="h:mm:ss" value={duration} onInput={(e) => setDuration((e.currentTarget as HTMLInputElement).value)} />
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="hh:mm:ss"
+                value={duration}
+                onInput={(e) => {
+                  const input = e.currentTarget as HTMLInputElement;
+                  // Write back directly as well: an ignored keystroke leaves the state unchanged and would not re-render.
+                  input.value = durationInput(input.value);
+                  setDuration(input.value);
+                }}
+              />
             </label>
             <label class="field">
               Effort (RPE 1–10)

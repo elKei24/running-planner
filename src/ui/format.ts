@@ -50,3 +50,14 @@ export const DISTANCE_PRESETS: Array<{ label: string; km: number }> = [
   { label: 'Half marathon', km: 21.0975 },
   { label: 'Marathon', km: 42.195 },
 ];
+
+/**
+ * Stopwatch-style duration entry: digits fill in from the right, so typing "12345" reads
+ * 01:23:45 and "987" reads 00:09:87. Non-digits are ignored; a seventh digit shifts the rest left.
+ */
+export function durationInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').replace(/^0+/, '').slice(-6);
+  if (digits === '') return '';
+  const p = digits.padStart(6, '0');
+  return `${p.slice(0, 2)}:${p.slice(2, 4)}:${p.slice(4)}`;
+}
