@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPlan, resetPlan, setUnits, todayDate } from '@/store/state';
-import { distance, km, pace, paceRange, units } from './format';
+import { distance, durationInput, km, pace, paceRange, units } from './format';
 
 describe('format', () => {
   beforeEach(() => {
@@ -20,5 +20,16 @@ describe('format', () => {
     setUnits('mi');
     expect(units.value).toBe('mi');
     expect(km(16.09)).toBe('10 mi');
+  });
+
+  it('formats duration entry stopwatch style, digits filling in from the right', () => {
+    expect(durationInput('')).toBe('');
+    expect(durationInput('1')).toBe('00:00:01');
+    expect(durationInput('987')).toBe('00:09:87');
+    expect(durationInput('12345')).toBe('01:23:45');
+    expect(durationInput('01:23:456')).toBe('12:34:56');
+    expect(durationInput('1:45:00')).toBe('01:45:00');
+    expect(durationInput('00:00:0')).toBe('');
+    expect(durationInput('abc')).toBe('');
   });
 });

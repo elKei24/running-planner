@@ -71,11 +71,18 @@ describe('App', () => {
     await act(async () => {
       fireEvent.input(distance, { target: { value: '7.5' } });
     });
+    // Duration is typed as plain digits and formats itself stopwatch style.
+    const duration = dialog.querySelector<HTMLInputElement>('input[placeholder="hh:mm:ss"]')!;
+    await act(async () => {
+      fireEvent.input(duration, { target: { value: '4530' } });
+    });
+    expect(duration.value).toBe('00:45:30');
     await act(async () => {
       fireEvent.submit(dialog.querySelector('form')!);
     });
     await waitFor(() => expect(state.value!.log).toHaveLength(1));
     expect(state.value!.log[0]!.distanceKm).toBe(7.5);
+    expect(state.value!.log[0]!.durationSec).toBe(45 * 60 + 30);
     expect(screen.getByText(/Logged 7.5 km/)).toBeTruthy();
   });
 
