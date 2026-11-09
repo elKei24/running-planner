@@ -1,7 +1,8 @@
 # Self-hosted Renovate; renovate.json holds the update rules. Needs the RENOVATE_TOKEN secret: a
-# fine-grained personal access token for this repository with read and write access to contents,
-# issues, pull requests and workflows. PRs opened with the default GITHUB_TOKEN do not trigger CI,
-# so automerge could never pass the required checks.
+# fine-grained personal access token for this repository with read and write access to commit
+# statuses, contents, issues, pull requests and workflows. PRs opened with the default GITHUB_TOKEN
+# do not trigger CI, so automerge could never pass the required checks. Commit statuses carry the
+# minimumReleaseAge check.
 name: Renovate
 
 on:
