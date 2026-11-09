@@ -15,7 +15,7 @@ export function EventsView() {
   const events = [...s.events].sort((a, b) => (eventDate(a) < eventDate(b) ? -1 : 1));
   return (
     <div class="stack">
-      <div class="card">
+      <div class="card stack">
         <h2>Races, breaks and availability</h2>
         <p class="muted">Anything you add here is folded into the plan immediately: tune-up races get a mini taper and recovery, blocked days are removed and the volume re-ramps afterwards.</p>
         <div class="checks segmented" role="tablist">
@@ -25,11 +25,9 @@ export function EventsView() {
             </label>
           ))}
         </div>
-        <div style={{ marginTop: 16 }}>
-          {tab === 'race' && <RaceForm />}
-          {tab === 'block' && <BlockForm />}
-          {tab === 'availability' && <AvailabilityForm />}
-        </div>
+        {tab === 'race' && <RaceForm />}
+        {tab === 'block' && <BlockForm />}
+        {tab === 'availability' && <AvailabilityForm />}
       </div>
       <div class="list">
         {events.length === 0 && <p class="empty">No events yet.</p>}

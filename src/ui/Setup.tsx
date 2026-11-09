@@ -66,7 +66,7 @@ export function Setup() {
       </div>
       {error && <div class="alert danger" role="alert">{error}</div>}
       <div class="row">
-        <button class="btn primary" type="submit" style={{ minHeight: 48, paddingInline: 24 }}>Create my plan</button>
+        <button class="btn primary large" type="submit">Create my plan</button>
       </div>
     </form>
   );

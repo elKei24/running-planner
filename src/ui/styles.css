@@ -119,13 +119,15 @@ nav.tabs a.active svg { background: var(--lime); stroke: #17181c; }
 }
 
 /* ---------- layout primitives ---------- */
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 20px; }
 .card.tight { padding: 14px 16px; }
-.card > h2:first-child, .card > form > h2:first-child { margin-bottom: 10px; }
+.card > :where(h2:first-child), .card > form > :where(h2:first-child) { margin-bottom: 10px; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
+/* A stack owns the space between its children: the gap replaces any margin the child brings along. */
 .stack { display: flex; flex-direction: column; gap: 14px; }
-.stack > .btn { align-self: flex-start; }
+.stack > * { margin-block: 0; }
+.stack > .btn, .stack > .checks.segmented { align-self: flex-start; }
 .grid { display: grid; gap: 14px 18px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 10px; flex-wrap: wrap; }
 .section-head .hint { color: var(--ink-2); font-size: 0.82rem; }
@@ -141,6 +143,7 @@ nav.tabs a.active svg { background: var(--lime); stroke: #17181c; }
 .btn.danger:hover { background: var(--danger-soft); }
 .btn.small { padding: 4px 12px; min-height: 32px; font-size: 0.78rem; }
 .btn.ghost { border-color: transparent; }
+.btn.large { min-height: 48px; padding-inline: 24px; }
 .btn.icon { width: 40px; padding: 0; }
 .btn.icon.small { width: 32px; }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -160,10 +163,11 @@ legend { padding: 0 6px; font-weight: 700; }
 .checks { display: flex; flex-wrap: wrap; gap: 8px; }
 .checks label { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--line-2); border-radius: 999px; cursor: pointer; font-size: 0.86rem; font-weight: 500; background: var(--surface); }
 .checks label:hover { border-color: var(--ink-3); }
+.checks label > span { line-height: 1.35; }
 .checks label:has(input:checked) { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .checks input { margin: 0; accent-color: var(--lime-deep); }
 .checks label:has(input:checked) input { accent-color: var(--lime); }
-.checks.segmented { gap: 0; display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px; background: var(--surface); }
+.checks.segmented { gap: 2px; display: inline-flex; border: 1px solid var(--line-2); border-radius: 999px; padding: 3px; background: var(--surface); }
 .checks.segmented label { border: 0; background: transparent; padding: 6px 14px; }
 .checks.segmented label input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .checks.segmented label:has(input:checked) { background: var(--ink); color: var(--paper); }
@@ -187,7 +191,9 @@ legend { padding: 0 6px; font-weight: 700; }
 .type-rest { --chip: var(--type-rest); }
 
 /* ---------- notices ---------- */
-.alert { padding: 10px 14px 10px 16px; border-radius: var(--radius); margin-bottom: 8px; font-size: 0.92rem; border-left: 3px solid var(--ink); background: var(--surface); }
+.alert { padding: 10px 14px 10px 16px; border-radius: var(--radius); font-size: 0.92rem; border-left: 3px solid var(--ink); background: var(--surface); }
+.alerts { display: flex; flex-direction: column; gap: 8px; }
+.alerts:not(:last-child), .app > .alert { margin-bottom: 14px; }
 .alert.info { border-left-color: var(--lime); }
 .alert.warn { border-left-color: var(--warn); background: var(--warn-soft); color: var(--warn); }
 .alert.danger { border-left-color: var(--danger); background: var(--danger-soft); color: var(--danger); }
@@ -221,6 +227,7 @@ legend { padding: 0 6px; font-weight: 700; }
 
 /* ---------- today ---------- */
 .today-card { border: 1px solid var(--ink); background: var(--surface); padding: 0; overflow: hidden; }
+.today-card .today-head .badge { color: inherit; }
 .today-card .today-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 16px; background: var(--lime); color: #17181c; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .today-card .today-body { padding: 14px 16px 16px; display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
 .today-card h2 { font-size: 1.7rem; margin: 2px 0 4px; }
@@ -229,7 +236,7 @@ legend { padding: 0 6px; font-weight: 700; }
 .today-card .actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 
 /* ---------- week navigation ---------- */
-.weeknav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
+.weeknav { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; }
 .weeknav h2 { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 1.6rem; }
 .weeknav h2 .badge { font-size: 0.66rem; }
 .weeknav .btn.icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -347,6 +354,7 @@ table.paces td:last-child { text-align: right; font-variant-numeric: tabular-num
 table.paces tr:last-child td { border-bottom: 0; }
 
 hr.rule { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+.footnote { color: var(--ink-2); font-size: 0.85rem; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; }

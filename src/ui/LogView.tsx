@@ -41,7 +41,7 @@ export function LogView() {
 
   return (
     <div class="stack">
-      <div class="card">
+      <div class="card stack">
         <div class="row between">
           <div>
             <h2>Training log</h2>
@@ -55,7 +55,7 @@ export function LogView() {
             <button class="btn primary" type="button" onClick={() => setEditing({ date: todayDate.value })}>+ Log a run</button>
           </div>
         </div>
-        {importError && <div class="alert danger" style={{ marginTop: 12 }}>{importError}</div>}
+        {importError && <div class="alert danger">{importError}</div>}
       </div>
       <div class="list ledger">
         {entries.length === 0 && <p class="empty">Nothing logged yet. Runs you log here (or from the week view) shape the plan going forward.</p>}
