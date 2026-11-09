@@ -3,6 +3,8 @@
   "extends": ["config:recommended", "helpers:pinGitHubActionDigests", ":semanticCommits"],
   "minimumReleaseAge": "3 days",
   "internalChecksFilter": "strict",
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
   "lockFileMaintenance": { "enabled": true, "automerge": true },
   "packageRules": [
     {
