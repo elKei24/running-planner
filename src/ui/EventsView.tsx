@@ -4,7 +4,7 @@ import type { Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
 import { addEvent, entriesOn, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
-import { DISTANCE_PRESETS, km } from './format';
+import { DISTANCE_PRESETS, km, loggedPace } from './format';
 import { DistanceField } from './forms';
 
 type Tab = 'race' | 'block' | 'availability';
@@ -57,7 +57,7 @@ function RaceResult({ race }: { race: Extract<PlanEvent, { kind: 'race' }> }) {
   const isReference = !!ref && Math.abs(ref.distanceKm - race.distanceKm) < 0.01 && ref.timeSec === result.durationSec;
   return (
     <div class="muted">
-      Result: {km(result.distanceKm)} in {formatDuration(result.durationSec!)}
+      Result: {km(result.distanceKm)} in {formatDuration(result.durationSec!)} ({loggedPace(result)})
       {isReference ? (
         ' · used for your paces'
       ) : (
