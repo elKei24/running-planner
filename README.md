@@ -58,8 +58,9 @@ One-time repository setup, after this workflow has landed on `main`: run
 merge only with the commit message taken from the PR title and description, a ruleset on `main`
 that requires a PR and the *Typecheck, lint, test, build* and *Validate PR title* checks, and
 *Pages → Source* set to **GitHub Actions**. For Renovate, create a fine-grained personal access
-token for this repository with read and write access to contents, issues, pull requests and
-workflows, and store it as the `RENOVATE_TOKEN` repository secret (`gh secret set RENOVATE_TOKEN`).
+token for this repository with read and write access to commit statuses, contents, issues, pull
+requests and workflows, and store it as the `RENOVATE_TOKEN` repository secret
+(`gh secret set RENOVATE_TOKEN`).
 
 ## License
 
