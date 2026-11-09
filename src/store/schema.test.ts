@@ -34,6 +34,9 @@ describe('validateState', () => {
     expect(() => validateState({ ...valid, prefs: { units: 'furlongs' } })).toThrow(/units/);
     expect(() => validateState({ ...valid, athlete: { ...valid.athlete, buildStrategy: 'yolo' } })).toThrow(/buildStrategy/);
     expect(validateState({ ...valid, athlete: { ...valid.athlete, buildStrategy: 'fast' } }).athlete.buildStrategy).toBe('fast');
+    expect(() => validateState({ ...valid, athlete: { ...valid.athlete, maxHr: 20 } })).toThrow(/maxHr/);
+    expect(validateState({ ...valid, athlete: { ...valid.athlete, maxHr: 188.4 } }).athlete.maxHr).toBe(188);
+    expect(validateState({ ...valid, athlete: { ...valid.athlete, maxHr: null } }).athlete.maxHr).toBeUndefined();
   });
 
   it('normalises availability days (dedupe + sort) and optional fields', () => {

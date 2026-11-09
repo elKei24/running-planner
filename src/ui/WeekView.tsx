@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import { useState } from 'preact/hooks';
 import { addDays, diffDays, formatDate, startOfWeek } from '@/domain/dates';
+import { expectedHr, formatHrRange } from '@/domain/heartRate';
 import type { LogEntry, Session, Week } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
 import { entriesOn, excludeDay, schedule, state, todayDate } from '@/store/state';
@@ -75,7 +76,7 @@ export function WeekView() {
     <div class="stack">
       {week.startDate === anchor && <Warnings warnings={sched.warnings} />}
       <Summary daysToRace={daysToRace} />
-      {week.startDate === anchor && todaySession && <TodayCard session={todaySession} entries={entries(today)} onLog={() => setLogging(todaySession)} />}
+      {week.startDate === anchor && todaySession && <TodayCard session={todaySession} entries={entries(today)} maxHr={s.athlete.maxHr} onLog={() => setLogging(todaySession)} />}
       {week.startDate === anchor && <PlanHealth />}
       <div class="weeknav">
         <button class="btn icon" type="button" onClick={() => go(-1)} disabled={!canGoBack} aria-label="Previous week">
@@ -97,7 +98,7 @@ export function WeekView() {
       <WeekHeader week={week} logged={logged} isCurrent={week.startDate === anchor} />
       <div class="timeline">
         {week.sessions.map((x) => (
-          <SessionCard key={x.id} session={x} entries={entries(x.date)} today={today} onLog={(sess) => setLogging(sess)} onExclude={exclude} />
+          <SessionCard key={x.id} session={x} entries={entries(x.date)} today={today} onLog={(sess) => setLogging(sess)} onExclude={exclude} maxHr={s.athlete.maxHr} />
         ))}
       </div>
       {week.startDate !== anchor && (
@@ -147,7 +148,8 @@ function WeekHeader({ week, logged, isCurrent }: { week: Week; logged: number; i
   );
 }
 
-function TodayCard({ session, entries, onLog }: { session: Session; entries: LogEntry[]; onLog: () => void }) {
+function TodayCard({ session, entries, maxHr, onLog }: { session: Session; entries: LogEntry[]; maxHr?: number; onLog: () => void }) {
+  const hr = maxHr ? expectedHr(session.type, maxHr) : undefined;
   const done = entries.some((e) => !e.skipped && e.distanceKm > 0);
   const skipped = entries.some((e) => e.skipped);
   return (
@@ -163,6 +165,7 @@ function TodayCard({ session, entries, onLog }: { session: Session; entries: Log
             <div class="meta">
               {km(session.distanceKm)}
               {session.pace ? ` · ${paceRange(session.pace)}` : ''}
+              {hr ? ` · ${formatHrRange(hr)}` : ''}
             </div>
           )}
           <p>{session.description}</p>

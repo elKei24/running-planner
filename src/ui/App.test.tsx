@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { App } from './App';
-import { addEvent, createPlan, initStore, logRun, replaceState, resetPlan, schedule, state, todayDate } from '@/store/state';
+import { addEvent, createPlan, initStore, logRun, replaceState, resetPlan, schedule, state, todayDate, updateAthlete } from '@/store/state';
 import { STORAGE_KEY } from '@/store/persist';
 import { memoryStorage } from '@/test/memoryStorage';
 
@@ -47,6 +47,15 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByText('Week 2 of 19')).toBeTruthy());
     fireEvent.click(screen.getByText('Back to this week'));
     await waitFor(() => expect(screen.getByText('Week 1 of 19')).toBeTruthy());
+  });
+
+  it('shows a heart-rate band on planned runs once a max heart rate is set', async () => {
+    createPlan(athlete, { date: '2027-03-14', distanceKm: 42.195 });
+    render(<App />);
+    expect(document.body.textContent).not.toContain('bpm');
+    updateAthlete({ ...state.value!.athlete, maxHr: 190 }, false);
+    // Easy runs sit at 65–79 % of max; the first week of a fresh plan is easy running only.
+    await waitFor(() => expect(screen.getAllByText(/124–150 bpm/).length).toBeGreaterThan(0));
   });
 
   it('logs a run from a session card and reflects it', async () => {

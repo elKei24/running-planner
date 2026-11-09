@@ -1,5 +1,6 @@
 import { addDays } from '@/domain/dates';
 import type { Schedule, Session, Units } from '@/domain/types';
+import { expectedHr, formatHrRange } from '@/domain/heartRate';
 import { formatPace } from '@/planner/paces';
 
 const KM_PER_MILE = 1.609344;
@@ -38,7 +39,7 @@ export function sessionSummary(s: Session): string {
 }
 
 /** Build an iCalendar document with one all-day event per planned run. */
-export function scheduleToIcs(schedule: Schedule, units: Units = 'km', calendarName = 'Running Planner'): string {
+export function scheduleToIcs(schedule: Schedule, units: Units = 'km', calendarName = 'Running Planner', maxHr?: number): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -49,10 +50,12 @@ export function scheduleToIcs(schedule: Schedule, units: Units = 'km', calendarN
   for (const week of schedule.weeks) {
     for (const s of week.sessions) {
       if (s.distanceKm <= 0 && s.type !== 'race') continue;
+      const hr = maxHr ? expectedHr(s.type, maxHr) : undefined;
       const desc = [
         s.distanceKm > 0 ? `Distance: ${distanceText(s.distanceKm, units)}` : '',
         s.description,
         s.pace ? `Pace: ${paceText(s.pace, units)}` : '',
+        hr ? `Heart rate: ${formatHrRange(hr)}` : '',
         `Phase: ${s.phase}`,
       ]
         .filter(Boolean)

@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { WEEKDAY_LONG_NAMES } from '@/domain/dates';
+import { MAX_MAX_HR, MIN_MAX_HR } from '@/domain/heartRate';
 import type { Weekday } from '@/domain/dates';
 import type { Athlete, Goal } from '@/domain/types';
 import { formatDuration, parseDuration } from '@/planner/paces';
@@ -66,6 +67,7 @@ export interface AthleteFormValue {
   refDistanceKm: string;
   refTime: string;
   buildStrategy: string;
+  maxHr: string;
 }
 
 export function athleteToForm(a?: Athlete): AthleteFormValue {
@@ -78,6 +80,7 @@ export function athleteToForm(a?: Athlete): AthleteFormValue {
     refDistanceKm: a?.referenceRace ? String(a.referenceRace.distanceKm) : '10',
     refTime: a?.referenceRace ? formatDuration(a.referenceRace.timeSec) : '',
     buildStrategy: a?.buildStrategy ?? 'steady',
+    maxHr: a?.maxHr ? String(a.maxHr) : '',
   };
 }
 
@@ -98,6 +101,11 @@ export function formToAthlete(f: AthleteFormValue): Athlete | string {
     peakWeeklyKm,
     buildStrategy: f.buildStrategy === 'fast' ? 'fast' : 'steady',
   };
+  if (f.maxHr.trim()) {
+    const maxHr = Number(f.maxHr);
+    if (!(maxHr >= MIN_MAX_HR && maxHr <= MAX_MAX_HR)) return `Max heart rate must be between ${MIN_MAX_HR} and ${MAX_MAX_HR} bpm.`;
+    athlete.maxHr = Math.round(maxHr);
+  }
   if (f.refTime.trim()) {
     const timeSec = parseDuration(f.refTime);
     const distanceKm = Number(f.refDistanceKm);
@@ -158,6 +166,11 @@ export function AthleteFields({ value, onChange, goalKm = 42.195, weeksToRace }:
           <option value="steady">Steady: spread the build over all the weeks</option>
           <option value="fast">Build fast, then maintain: peak volume in ~16 weeks, hold, 12-week marathon block</option>
         </select>
+      </label>
+      <label class="field">
+        Max heart rate (bpm)
+        <span class="hint">Optional. Planned runs then show a heart-rate range. If you do not know it, leave it empty: 220 minus age is often off by 10 or more.</span>
+        <input type="number" min={MIN_MAX_HR} max={MAX_MAX_HR} step="1" inputMode="numeric" value={value.maxHr} onInput={set('maxHr')} aria-label="Max heart rate" />
       </label>
       <label class="field">
         Recent race (for paces)

@@ -47,4 +47,11 @@ describe('ics', () => {
     expect(ics).toContain(' mi');
     expect(ics).not.toContain('/km');
   });
+
+  it('adds a heart-rate line when a max heart rate is given', () => {
+    const schedule = plan(state, '2026-11-02');
+    expect(scheduleToIcs(schedule)).not.toContain('Heart rate');
+    const ics = scheduleToIcs(schedule, 'km', 'Running Planner', 190);
+    expect(ics).toContain('Heart rate: 124–150 bpm');
+  });
 });
