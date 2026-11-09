@@ -38,6 +38,8 @@ export interface Athlete {
   referenceRace?: ReferenceRace;
   /** Defaults to 'steady' when absent. */
   buildStrategy?: BuildStrategy;
+  /** Maximum heart rate in bpm (optional). Planned runs then show a heart-rate range. */
+  maxHr?: number;
 }
 
 export interface Goal {

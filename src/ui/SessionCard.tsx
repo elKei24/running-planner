@@ -1,4 +1,5 @@
 import { formatDate, WEEKDAY_NAMES, weekday } from '@/domain/dates';
+import { expectedHr, formatHrRange } from '@/domain/heartRate';
 import { rpeLabel } from '@/domain/rpe';
 import type { LogEntry, Session } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
@@ -21,11 +22,14 @@ export interface SessionCardProps {
   today: string;
   onLog?: (s: Session) => void;
   onExclude?: (s: Session) => void;
+  /** Athlete's maximum heart rate; when set, planned runs show a heart-rate range. */
+  maxHr?: number;
 }
 
 /** One day of the week, laid out as a stop on a timeline (day · rail · what · actions). */
-export function SessionCard({ session, entries, today, onLog, onExclude }: SessionCardProps) {
+export function SessionCard({ session, entries, today, onLog, onExclude, maxHr }: SessionCardProps) {
   const status = sessionStatus(session, entries, today);
+  const hr = maxHr ? expectedHr(session.type, maxHr) : undefined;
   const logged = entries.reduce((a, e) => a + (e.skipped ? 0 : e.distanceKm), 0);
   const classes = ['session', `type-${session.type}`, session.date === today ? 'today' : '', status === 'done' ? 'done' : '', status === 'missed' ? 'past-missed' : '']
     .filter(Boolean)
@@ -49,6 +53,7 @@ export function SessionCard({ session, entries, today, onLog, onExclude }: Sessi
           <div class="meta">
             {km(session.distanceKm)}
             {session.pace ? ` · ${paceRange(session.pace)}` : ''}
+            {hr ? ` · ${formatHrRange(hr)}` : ''}
           </div>
         )}
         <div class="desc">{session.description}</div>

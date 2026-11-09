@@ -79,6 +79,20 @@ than a finding, it says so. Sources are listed at the end.
   quality session, nothing else changes.
 - A warning is raised when a tune-up race falls inside the taper.
 
+## Heart-rate guidance
+
+- **Bands as a share of maximum heart rate** (`domain/heartRate.ts`): easy and long runs 65–79 %,
+  marathon pace 80–90 %, threshold 88–92 %, intervals 95–100 %. These are Daniels' HRmax ranges for
+  the E, M, T and I zones (Daniels 2014); recovery runs at 60–70 % sit below the easy band and are a
+  judgement call. Races get no band: the right intensity depends on the distance.
+- **Why max heart rate, not resting or lactate threshold.** It is the one number most runners know
+  or can measure in a hard 5 km or hill repeats. Formulas such as 220 minus age have a standard
+  deviation of about 10 bpm (Tanaka et al. 2001), so the form asks for a measured value and leaves
+  the field optional.
+- **Heart rate lags and drifts.** It takes a few minutes to reach the band at the start of a run and
+  climbs with heat, dehydration and duration (cardiovascular drift), so the planner presents the band
+  next to pace and RPE as a cross-check, never as the primary target.
+
 ## Periodisation
 
 Two build strategies (ADR 0015). **Steady** spreads the ramp evenly over the available weeks and
@@ -93,7 +107,9 @@ warned; with fewer than 12 weeks a milder warning is shown. 16–18 weeks is the
 
 ## Known simplifications
 
-- No heart-rate or power data; effort is described by pace zones or RPE.
+- Heart rate is guidance only. When the athlete enters a maximum heart rate, planned runs show a
+  band derived from it (below); logged heart rate is not recorded and does not steer the plan. No
+  power data.
 - No heat/altitude adjustment.
 - Cross-training is not modelled; a blocked day is simply no running.
 - Long-run time cap uses the middle of the easy zone, not the athlete's actual long-run pace.
@@ -102,6 +118,8 @@ warned; with fewer than 12 weeks a milder warning is shown. 16–18 weeks is the
 
 - Daniels, J. & Gilbert, J. (1979). *Oxygen Power: Performance Tables for Distance Runners.*
 - Daniels, J. (2014). *Daniels' Running Formula*, 3rd ed. Human Kinetics.
+- Tanaka, H., Monahan, K. D. & Seals, D. R. (2001). Age-predicted maximal heart rate revisited.
+  *J Am Coll Cardiol* 37(1):153–6.
 - Pfitzinger, P. & Douglas, S. (2019). *Advanced Marathoning*, 3rd ed. Human Kinetics.
 - Bosquet, L. et al. (2007). Effects of tapering on performance: a meta-analysis. *Med Sci Sports
   Exerc* 39(8):1358–65.

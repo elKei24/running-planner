@@ -1,6 +1,7 @@
 import { isLocalDate } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import { SCHEMA_VERSION } from '@/domain/types';
+import { MAX_MAX_HR, MIN_MAX_HR } from '@/domain/heartRate';
 import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Prefs } from '@/domain/types';
 
 export class ValidationError extends Error {
@@ -58,6 +59,9 @@ export function validateAthlete(v: unknown, path = 'athlete'): Athlete {
   if (o.buildStrategy !== undefined && o.buildStrategy !== null) {
     if (o.buildStrategy !== 'steady' && o.buildStrategy !== 'fast') fail(`${path}.buildStrategy`, "'steady' or 'fast'");
     athlete.buildStrategy = o.buildStrategy;
+  }
+  if (o.maxHr !== undefined && o.maxHr !== null) {
+    athlete.maxHr = Math.round(num(o.maxHr, `${path}.maxHr`, MIN_MAX_HR, MAX_MAX_HR));
   }
   if (o.referenceRace !== undefined && o.referenceRace !== null) {
     const r = obj(o.referenceRace, `${path}.referenceRace`);

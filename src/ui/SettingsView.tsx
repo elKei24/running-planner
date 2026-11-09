@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { weeksBetween } from '@/domain/dates';
+import { expectedHr, formatHrRange, HR_ZONES } from '@/domain/heartRate';
 import { downloadText, exportJson, importJson } from '@/io/json';
 import { scheduleToIcs } from '@/io/ics';
 import { formatDuration } from '@/planner/paces';
@@ -15,6 +16,19 @@ export function SettingsView() {
     <div class="stack">
       <GoalSettings key={s.goal.date + (s.goal.name ?? '')} />
       <AthleteSettings key={JSON.stringify(s.athlete)} />
+      {s.athlete.maxHr && (
+        <div class="card">
+          <h2>Heart-rate zones</h2>
+          <p class="muted">Based on your max heart rate of {s.athlete.maxHr} bpm. Guidance only: heart rate lags at the start of a session and drifts up in heat and over long runs, so trust pace and feel when they disagree.</p>
+          <table class="paces">
+            <tbody>
+              {HR_ZONES.map((z) => (
+                <tr key={z.label}><td>{z.label}</td><td>{formatHrRange(expectedHr(z.types[0]!, s.athlete.maxHr!)!)}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       {sched.paces && (
         <div class="card">
           <h2>Training paces</h2>
@@ -131,7 +145,7 @@ function DataSettings() {
           Import backup
           <input type="file" accept="application/json,.json" onChange={onImport} class="sr-only" />
         </label>
-        <button class="btn" type="button" onClick={() => downloadText('running-plan.ics', scheduleToIcs(sched, s.prefs.units), 'text/calendar')}>Export calendar (.ics)</button>
+        <button class="btn" type="button" onClick={() => downloadText('running-plan.ics', scheduleToIcs(sched, s.prefs.units, undefined, s.athlete.maxHr), 'text/calendar')}>Export calendar (.ics)</button>
       </div>
       {err && (
         <div class="row" style={{ marginTop: 12 }}>
