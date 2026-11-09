@@ -3,6 +3,8 @@
 #   feat(planner): shorten the taper for half marathons
 #   fix: keep the long run when the week is tiny
 #   feat!: drop support for schema version 1
+# feat releases a minor version; fix, perf, refactor, build, style and revert a patch version;
+# docs, test, ci and chore do not release (see .releaserc.json and the README).
 name: PR title
 
 on:

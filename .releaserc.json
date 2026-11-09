@@ -8,7 +8,9 @@
         "preset": "conventionalcommits",
         "releaseRules": [
           { "type": "refactor", "release": "patch" },
-          { "type": "build", "release": "patch" }
+          { "type": "build", "release": "patch" },
+          { "type": "style", "release": "patch" },
+          { "type": "revert", "release": "patch" }
         ]
       }
     ],
@@ -19,13 +21,14 @@
         "presetConfig": {
           "types": [
             { "type": "feat", "section": "Features" },
+            { "type": "fix", "scope": "deps", "section": "Dependencies" },
             { "type": "fix", "section": "Bug Fixes" },
             { "type": "perf", "section": "Performance" },
+            { "type": "style", "section": "Styling" },
             { "type": "refactor", "section": "Refactoring" },
             { "type": "build", "section": "Build" },
             { "type": "revert", "section": "Reverts" },
             { "type": "docs", "hidden": true },
-            { "type": "style", "hidden": true },
             { "type": "test", "hidden": true },
             { "type": "ci", "hidden": true },
             { "type": "chore", "hidden": true }

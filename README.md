@@ -51,9 +51,11 @@ lint, tests with coverage, build).
 Every push to `main` runs the release workflow:
 
 1. [semantic-release](https://semantic-release.gitbook.io/) works out the next version from the
-   commits since the last tag: `feat` bumps the minor version, `fix`/`perf`/`refactor`/`build` the
-   patch version, a `!` after the type or a `BREAKING CHANGE:` footer the major version. `docs`,
-   `test`, `ci`, `chore` and `style` commits do not release.
+   commits since the last tag: `feat` bumps the minor version, `fix`/`perf`/`refactor`/`build`/
+   `style`/`revert` the patch version, a `!` after the type or a `BREAKING CHANGE:` footer the
+   major version. `docs`, `test`, `ci` and `chore` commits do not release, so use them only for
+   changes that do not alter the built app. Renovate titles runtime dependency updates `fix(deps)`
+   (released, listed under *Dependencies*) and everything else `chore(deps)`.
 2. If a release is due, it tags `main` (`vX.Y.Z`) and creates a GitHub release with generated notes.
 3. That tag is built with `APP_VERSION=X.Y.Z` and `BASE_PATH=/running-planner/` and deployed to
    GitHub Pages. The settings page shows the version; development builds show `dev-<commit>`.
