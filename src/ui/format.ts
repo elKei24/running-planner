@@ -1,5 +1,5 @@
 import { computed } from '@preact/signals';
-import type { PaceRange, Phase, SessionType, Units } from '@/domain/types';
+import type { LogEntry, PaceRange, Phase, SessionType, Units } from '@/domain/types';
 import { formatPace } from '@/planner/paces';
 import { state } from '@/store/state';
 
@@ -60,4 +60,10 @@ export function durationInput(raw: string): string {
   if (digits === '') return '';
   const p = digits.padStart(6, '0');
   return `${p.slice(0, 2)}:${p.slice(2, 4)}:${p.slice(4)}`;
+}
+
+/** Average pace of a logged run in the current units, when both distance and duration are known. */
+export function loggedPace(e: Pick<LogEntry, 'distanceKm' | 'durationSec'>, u: Units = units.value): string | undefined {
+  if (!e.durationSec || !(e.distanceKm > 0)) return undefined;
+  return pace(e.durationSec / e.distanceKm, u);
 }

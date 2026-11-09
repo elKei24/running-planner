@@ -34,6 +34,8 @@ describe('views', () => {
     expect(screen.getByText(/2 runs|1 runs/)).toBeTruthy();
     expect(screen.getByText(/windy/)).toBeTruthy();
     expect(screen.getByText(/RPE 5 \(somewhat hard\)/)).toBeTruthy();
+    // 9 km in 50:00 is shown with its average pace.
+    expect(screen.getByText(/50:00 · 5:33 \/km/)).toBeTruthy();
     expect(screen.getByText('Skipped')).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getAllByText('Edit')[0]!);

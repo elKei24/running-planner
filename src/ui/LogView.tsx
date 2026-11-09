@@ -5,7 +5,7 @@ import type { LogEntry } from '@/domain/types';
 import { parseActivity } from '@/io/gpx';
 import { formatDuration } from '@/planner/paces';
 import { state, todayDate } from '@/store/state';
-import { km } from './format';
+import { km, loggedPace } from './format';
 import { LogDialog } from './LogDialog';
 
 interface Editing {
@@ -68,7 +68,7 @@ export function LogView() {
             </div>
             <div class="what">
               <span class="sr-only">{formatDate(e.date, { weekday: true, year: true })}</span>
-              <div class={`big ${e.skipped ? 'skipped' : ''}`}>{e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)}` : ''}`}</div>
+              <div class={`big ${e.skipped ? 'skipped' : ''}`}>{e.skipped ? 'Skipped' : `${km(e.distanceKm)}${e.durationSec ? ` · ${formatDuration(e.durationSec)} · ${loggedPace(e)}` : ''}`}</div>
               <div class="sub">
                 {e.skipped ? '' : e.rpe ? `RPE ${e.rpe} (${rpeLabel(e.rpe).toLowerCase()})` : ''}
                 {e.note ? `${!e.skipped && e.rpe ? ' · ' : ''}${e.note}` : ''}
