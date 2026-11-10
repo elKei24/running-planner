@@ -209,6 +209,21 @@ describe('plan', () => {
     expect(week.notes.join(' ')).toContain('availability');
   });
 
+  it('keeps the quality session clear of the long run when its usual day is taken', () => {
+    // Four runs a week, long run on Sunday, no running on Wednesday this week.
+    const athlete = { ...baseState().athlete, daysPerWeek: 4 };
+    const events: PlannerState['events'] = [{ id: 'a', kind: 'availability', weekOf: '2026-11-02', days: [0, 1, 3, 4, 5, 6] }];
+    expect(plan(baseState({ athlete }), '2026-11-02').weeks[0]!.sessions.map((x) => x.type)).toEqual(['rest', 'easy', 'tempo', 'rest', 'easy', 'rest', 'long']);
+    const week = plan(baseState({ athlete, events }), '2026-11-02').weeks[0]!;
+    expect(week.sessions.map((x) => x.type)).toEqual(['rest', 'easy', 'rest', 'tempo', 'easy', 'rest', 'long']);
+    // A run on Monday's rest day takes Tuesday's easy run; the tempo still follows two days off.
+    const adjusted = plan(baseState({ athlete, events, log: [{ id: 'mon', date: '2026-11-02', distanceKm: 8.4 }] }), '2026-11-03').weeks[0]!;
+    expect(adjusted.sessions.map((x) => x.type)).toEqual(['easy', 'rest', 'rest', 'tempo', 'easy', 'rest', 'long']);
+    // Three runs a week: Thursday becomes a run day for it, rather than Friday keeping the tempo.
+    const three = plan(baseState({ athlete: { ...athlete, daysPerWeek: 3 }, events }), '2026-11-02').weeks[0]!;
+    expect(three.sessions.map((x) => x.type)).toEqual(['rest', 'easy', 'rest', 'tempo', 'rest', 'rest', 'long']);
+  });
+
   it('build fast, then maintain: peak volume by week 16, a held middle, and a marathon block', () => {
     const athlete = { weeklyKmRecent: 37, longestRecentRunKm: 21, daysPerWeek: 4, longRunDay: 6 as const, peakWeeklyKm: 70, buildStrategy: 'fast' as const };
     const s = plan(baseState({ createdAt: '2026-11-06', athlete, goal: { date: '2027-12-05', distanceKm: 42.195 } }), '2026-11-06');

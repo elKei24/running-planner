@@ -42,27 +42,30 @@ describe('recoveryDays', () => {
 describe('applyRaces', () => {
   it('replaces the long run with a B race, eases the days before and recovers after', () => {
     const map = twoWeeks();
-    // Week 1: Mon easy, Tue easy, Wed tempo, Thu easy, Fri intervals, Sat easy, Sun long
+    // Week 1: Mon rest, Tue tempo, Wed easy, Thu intervals, Fri easy, Sat easy, Sun long
     applyRaces(map, [{ id: 'r', kind: 'race', date: '2026-11-15', distanceKm: 10, priority: 'B', name: 'City 10k' }], '2026-01-01');
     const t = types(map);
-    expect(t.slice(0, 7)).toEqual(['rest', 'easy', 'tempo', 'easy', 'easy', 'easy', 'race']);
+    expect(t.slice(0, 7)).toEqual(['rest', 'tempo', 'easy', 'easy', 'easy', 'easy', 'race']);
+    expect(map.get('2026-11-12')!.description).toContain('ahead of the race'); // intervals three days out → easy
     expect(map.get('2026-11-14')!.title).toBe('Shakeout jog');
     expect(map.get('2026-11-14')!.distanceKm).toBeLessThanOrEqual(4);
     expect(map.get('2026-11-15')!.raceEventId).toBe('r');
     expect(map.get('2026-11-15')!.title).toBe('City 10k');
-    // Recovery: Mon after is recovery jog, no quality within 4 days.
+    // Recovery: no quality within 4 days (Tue intervals and Thu tempo become easy).
     expect(map.get('2026-11-16')!.type).toBe('rest');
-    expect(map.get('2026-11-18')!.type).toBe('easy');
-    expect(map.get('2026-11-18')!.description).toContain('recovering');
-    expect(map.get('2026-11-20')!.type).toBe('tempo'); // day 5: back to normal
+    for (const date of ['2026-11-17', '2026-11-19']) {
+      expect(map.get(date)!.type).toBe('easy');
+      expect(map.get(date)!.description).toContain('recovering');
+    }
+    expect(map.get('2026-11-20')!.adjusted).toBeUndefined(); // day 5: back to normal
   });
 
   it('keeps a C race as the workout of the day with minimal changes', () => {
     const map = twoWeeks();
-    applyRaces(map, [{ id: 'c', kind: 'race', date: '2026-11-12', distanceKm: 5, priority: 'C' }], '2026-01-01');
-    expect(map.get('2026-11-12')!.type).toBe('race');
-    expect(map.get('2026-11-11')!.type).toBe('easy'); // tempo → easy
-    expect(map.get('2026-11-13')!.type).toBe('recovery'); // intervals → recovery jog
+    applyRaces(map, [{ id: 'c', kind: 'race', date: '2026-11-11', distanceKm: 5, priority: 'C' }], '2026-01-01');
+    expect(map.get('2026-11-11')!.type).toBe('race');
+    expect(map.get('2026-11-10')!.type).toBe('easy'); // tempo → easy
+    expect(map.get('2026-11-12')!.type).toBe('recovery'); // intervals → recovery jog
     expect(map.get('2026-11-15')!.type).toBe('long');
   });
 
@@ -84,15 +87,17 @@ describe('applyRaces', () => {
   it('applies recovery for a race that happened before the window (logged late)', () => {
     const map = twoWeeks(); // starts Monday 2026-11-09
     applyRaces(map, [{ id: 'hm', kind: 'race', date: '2026-11-07', distanceKm: 21.0975, priority: 'B' }], '2026-01-01');
-    // 9 recovery days: Mon 9 Nov is a rest day, Wed 11 (tempo) and Fri 13 (intervals) become easy, Sun 15 long run stays but easy only.
-    expect(map.get('2026-11-11')!.type).toBe('easy');
-    expect(map.get('2026-11-13')!.type).toBe('easy');
+    // 9 recovery days: Mon 9 Nov is a rest day, Tue 10 (tempo) and Thu 12 (intervals) become easy, Sun 15 long run stays but easy only.
+    for (const date of ['2026-11-10', '2026-11-12']) {
+      expect(map.get(date)!.type).toBe('easy');
+      expect(map.get(date)!.description).toContain('recovering');
+    }
     expect(map.get('2026-11-15')!.description).toContain('recovering');
-    expect(map.get('2026-11-18')!.type).toBe('intervals'); // day 11: normal again
+    expect(map.get('2026-11-17')!.type).toBe('intervals'); // day 10: normal again
     // Even a race before the plan was created still drives recovery, but nothing before `notBefore` is touched.
     const fresh = twoWeeks();
     applyRaces(fresh, [{ id: 'hm', kind: 'race', date: '2026-11-07', distanceKm: 21.0975, priority: 'B' }], '2026-11-09');
-    expect(fresh.get('2026-11-11')!.type).toBe('easy');
+    expect(fresh.get('2026-11-10')!.type).toBe('easy');
     expect([...fresh.keys()].every((d) => d >= '2026-11-09')).toBe(true);
   });
 });

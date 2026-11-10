@@ -30,8 +30,66 @@ describe('chooseRunDays', () => {
   it('puts the long run on the preferred day and spaces quality sessions out', () => {
     const r = chooseRunDays(6, 5, ALL, 2);
     expect(r.long).toBe(6);
-    expect(r.quality).toEqual([2, 4]); // Wed, Fri
-    expect(r.easy.sort()).toEqual([1, 3]); // Tue, Thu
+    // Two days from the long run and from each other; of the pairs that manage that, the earliest.
+    expect(r.quality).toEqual([1, 3]); // Tue, Thu
+    expect(r.easy).toEqual([2, 4]); // Wed, Fri
+  });
+
+  it('gives a single quality session three days clear of the long run, mid-week by default', () => {
+    // Sunday long run, every day available: Wednesday for the quality session, whatever the number of runs.
+    expect(chooseRunDays(6, 2, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [] });
+    expect(chooseRunDays(6, 3, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [4] });
+    expect(chooseRunDays(6, 4, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [1, 4] });
+    expect(chooseRunDays(6, 5, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [1, 3, 4] });
+    expect(chooseRunDays(6, 6, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [1, 3, 4, 5] });
+    expect(chooseRunDays(6, 7, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [0, 1, 3, 4, 5] });
+  });
+
+  it('compares the layouts again when a day is taken, instead of falling back to a fixed order', () => {
+    const without = (d: Weekday) => ALL.filter((x) => x !== d);
+    // No Wednesday: Thursday is the other day three days clear of the long run.
+    expect(chooseRunDays(6, 4, without(2), 1)).toEqual({ long: 6, quality: [3], easy: [1, 4] });
+    expect(chooseRunDays(6, 3, without(2), 1)).toEqual({ long: 6, quality: [3], easy: [1] });
+    // No Friday: Tue · Thu · Sun is spread evenly, Tue · Wed · Sun is not.
+    expect(chooseRunDays(6, 3, without(4), 1)).toEqual({ long: 6, quality: [3], easy: [1] });
+    // No Tuesday, four runs: every other day beats three days in a row.
+    expect(chooseRunDays(6, 4, without(1), 1)).toEqual({ long: 6, quality: [2], easy: [0, 4] });
+    // Two quality sessions without Wednesday.
+    expect(chooseRunDays(6, 5, without(2), 2)).toEqual({ long: 6, quality: [1, 3], easy: [4, 5] });
+  });
+
+  it('keeps the days next to the long run free while it can, the day after first', () => {
+    for (const long of ALL) {
+      const after = ((long + 1) % 7) as Weekday;
+      const before = ((long + 6) % 7) as Weekday;
+      for (const n of [2, 3, 4, 5]) {
+        const r = chooseRunDays(long, n, ALL, 1);
+        expect([...r.quality, ...r.easy]).not.toContain(after);
+        expect([...r.quality, ...r.easy]).not.toContain(before);
+      }
+      const six = chooseRunDays(long, 6, ALL, 1);
+      expect([...six.quality, ...six.easy]).not.toContain(after);
+      expect([...six.quality, ...six.easy]).toContain(before);
+    }
+  });
+
+  it('uses every run day it is given', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 6 }),
+        fc.integer({ min: 1, max: 7 }),
+        fc.uniqueArray(fc.integer({ min: 0, max: 6 }), { minLength: 1, maxLength: 7 }),
+        fc.integer({ min: 0, max: 2 }),
+        (long, days, avail, q) => {
+          const r = chooseRunDays(long as Weekday, days, avail as Weekday[], q);
+          const others = [...r.quality, ...r.easy];
+          expect(others.length + 1).toBe(Math.min(days, avail.length));
+          expect(r.quality.length).toBe(Math.min(q, others.length));
+          expect(r.quality).toEqual([...r.quality].sort((a, b) => a - b));
+          expect(r.easy).toEqual([...r.easy].sort((a, b) => a - b));
+        },
+      ),
+    );
   });
 
   it('moves the long run to the nearest available day', () => {
@@ -128,7 +186,7 @@ describe('buildWeek', () => {
     const week = buildWeek(input());
     expect(week).toHaveLength(7);
     expect(week.map((s) => s.date)).toEqual(['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15']);
-    expect(week.map((s) => s.type)).toEqual(['rest', 'easy', 'tempo', 'easy', 'intervals', 'rest', 'long']);
+    expect(week.map((s) => s.type)).toEqual(['rest', 'tempo', 'easy', 'intervals', 'easy', 'rest', 'long']);
     const total = week.reduce((a, s) => a + s.distanceKm, 0);
     expect(total).toBeCloseTo(50, 0);
   });

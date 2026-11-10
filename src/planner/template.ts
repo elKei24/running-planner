@@ -164,14 +164,44 @@ export function roundHalf(km: number): number {
   return Math.round(km * 2) / 2;
 }
 
-const dayOffsets = [0, 3, 5, 2, 4, 6, 1] as const;
-
 function circularDistance(a: Weekday, b: Weekday): number {
   const d = Math.abs(a - b);
   return Math.min(d, 7 - d);
 }
 
-/** Pick which weekdays are run days and which roles they play. */
+/** All ways to pick `k` of `items`, each in the order given, earliest picks first. */
+function combinations<T>(items: T[], k: number): T[][] {
+  if (k === 0) return [[]];
+  return items.flatMap((item, i) => combinations(items.slice(i + 1), k - 1).map((rest) => [item, ...rest]));
+}
+
+/** Compare two lists of numbers entry by entry: negative when `a` comes first. */
+function compareLists(a: number[], b: number[]): number {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
+    if (a[i] !== b[i]) return a[i]! - b[i]!;
+  }
+  return a.length - b.length;
+}
+
+/** The most room a hard session can use: three days clear of the long run on both sides. */
+export const FULL_ROOM_DAYS = 3;
+
+/**
+ * Pick which weekdays are run days and which roles they play.
+ *
+ * The long run goes on the preferred day, otherwise the nearest available one.
+ * Every way of choosing the other run days and the quality days among them is
+ * then compared, and the best layout wins:
+ *
+ * 1. Run days spread as evenly over the week as possible.
+ * 2. As much room as possible between the hard sessions (long run and quality),
+ *    counted up to three days.
+ * 3. No run the day after the long run, then none the day before it.
+ * 4. Otherwise the earlier days: quality sessions first, so that a missed one
+ *    can still be made up later in the week, then the run days as a whole.
+ *
+ * Quality and easy days are returned in calendar order.
+ */
 export function chooseRunDays(
   longRunDay: Weekday,
   daysPerWeek: number,
@@ -181,7 +211,6 @@ export function chooseRunDays(
   const avail = new Set(available);
   if (avail.size === 0 || daysPerWeek <= 0) return { quality: [], easy: [] };
 
-  // Long run on the preferred day, otherwise the nearest available day.
   let long: Weekday | undefined;
   for (const delta of [0, -1, 1, -2, 2, -3, 3]) {
     const d = (((longRunDay + delta) % 7) + 7) % 7 as Weekday;
@@ -191,25 +220,35 @@ export function chooseRunDays(
     }
   }
   if (long === undefined) return { quality: [], easy: [] };
+  const longDay = long;
 
-  const ordered = dayOffsets.map((o) => ((long! + o) % 7) as Weekday).filter((d) => avail.has(d));
-  const runDays = ordered.slice(0, Math.min(daysPerWeek, ordered.length));
-  const others = runDays.filter((d) => d !== long);
+  const candidates = ([0, 1, 2, 3, 4, 5, 6] as Weekday[]).filter((d) => d !== longDay && avail.has(d));
+  const otherCount = Math.min(daysPerWeek - 1, candidates.length);
+  const wanted = Math.min(qualityCount, otherCount);
+  const dayAfter = (longDay + 1) % 7;
+  const dayBefore = (longDay + 6) % 7;
 
-  const quality: Weekday[] = [];
-  const wanted = Math.min(qualityCount, others.length);
-  for (const minGap of [2, 1, 0]) {
-    for (const d of others) {
-      if (quality.length >= wanted) break;
-      if (quality.includes(d)) continue;
-      if (circularDistance(d, long) < minGap) continue;
-      if (quality.some((q) => circularDistance(q, d) < minGap)) continue;
-      quality.push(d);
+  let best: { score: number[]; quality: Weekday[]; others: Weekday[] } | undefined;
+  for (const others of combinations(candidates, otherCount)) {
+    const runDays = [...others, longDay].sort((a, b) => a - b);
+    // Gaps between consecutive run days, round the week, smallest first: larger is more even.
+    const gaps = runDays.map((d, i) => (runDays[(i + 1) % runDays.length]! - d + 7) % 7 || 7).sort((a, b) => a - b);
+    const adjacent = [others.includes(dayAfter as Weekday) ? 0 : 1, others.includes(dayBefore as Weekday) ? 0 : 1];
+    for (const quality of combinations(others, wanted)) {
+      const hard = [longDay, ...quality];
+      const room = Math.min(FULL_ROOM_DAYS, ...hard.flatMap((a, i) => hard.slice(i + 1).map((b) => circularDistance(a, b))));
+      const score = [...gaps, room, ...adjacent];
+      // Higher score wins; on a tie the earlier quality days, then the earlier run days.
+      const better =
+        !best ||
+        compareLists(score, best.score) > 0 ||
+        (compareLists(score, best.score) === 0 && (compareLists(quality, best.quality) < 0 || (compareLists(quality, best.quality) === 0 && compareLists(others, best.others) < 0)));
+      if (better) best = { score, quality, others };
     }
-    if (quality.length >= wanted) break;
   }
-  const easy = others.filter((d) => !quality.includes(d));
-  return { long, quality, easy };
+  if (!best) return { long, quality: [], easy: [] };
+  const { quality, others } = best;
+  return { long, quality, easy: others.filter((d) => !quality.includes(d)) };
 }
 
 export interface Distribution {

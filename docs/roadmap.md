@@ -40,6 +40,9 @@
 - The current week follows the log: runs on rest days count, missed key sessions move to a later
   day when the spacing allows (ADR 0019).
 
+- Run days and quality days are chosen by comparing layouts instead of a fixed order of
+  preference, so weeks with days taken stay evenly spread (ADR 0020).
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.
