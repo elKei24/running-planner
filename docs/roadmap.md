@@ -37,6 +37,9 @@
 - Past races: enter a race after the fact with its result, log it, use it for paces, and get the
   recovery days even when the race was before the current week (ADR 0016).
 
+- The current week follows the log: runs on rest days count, missed key sessions move to a later
+  day when the spacing allows (ADR 0019).
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.

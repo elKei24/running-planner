@@ -2,6 +2,7 @@ import { addDays, dateRange, formatDate, startOfWeek, weekday, weeksBetween } fr
 import type { LocalDate, Weekday } from '@/domain/dates';
 import type {
   BlockEvent,
+  LogEntry,
   PlanWarning,
   PlannerState,
   RaceEvent,
@@ -9,6 +10,7 @@ import type {
   Session,
   Week,
 } from '@/domain/types';
+import { adaptWeek } from './adapt';
 import { applyGoalRace, applyRaces } from './events';
 import { estimateFitness } from './fitness';
 import { formatDuration, paceZones, vdotFromRace } from './paces';
@@ -146,13 +148,34 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
   applyRaces(map, races, state.createdAt, paces, units);
   const raceWeek = weeks[weeks.length - 1]!;
   applyGoalRace(map, state.goal, raceWeek.targetKm, state.athlete.daysPerWeek, new Set(blockedByDate.keys()), state.createdAt, paces, units);
-  for (const w of weeks) {
-    w.sessions = w.sessions.map((s) => map.get(s.date) ?? s);
-    w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;
+  for (const w of weeks) w.sessions = w.sessions.map((s) => map.get(s.date) ?? s);
+
+  // The current week follows what was logged: days behind us are settled, and so is today once it has an entry.
+  const current = weeks[0]!;
+  const override = state.events.find((e) => e.kind === 'availability' && e.weekOf === anchorDate);
+  const availableDays = override && override.kind === 'availability' ? override.days : ALL_DAYS;
+  const logged = new Map<LocalDate, number>();
+  const open = new Set<LocalDate>();
+  for (const { date } of current.sessions) {
+    if (date < state.createdAt) continue;
+    if (date < todayDate || state.log.some((e) => e.date === date)) logged.set(date, loggedKm(state.log, date));
+    if (availableDays.includes(weekday(date)) && !blockedByDate.has(date)) open.add(date);
   }
+  const adapted = adaptWeek(current.sessions, logged, open, weeks[1]?.sessions, units);
+  if (adapted !== current.sessions) {
+    current.sessions = adapted;
+    current.notes.push('Adjusted to what you have logged so far this week.');
+  }
+
+  for (const w of weeks) w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;
 
   warnings.push(...collectWarnings(state, totalWeeks, fitness.levelKm, paces?.predictedGoalTimeSec, races, blocks, weeks, timeCapKm));
   return { weeks, warnings, paces, fitness, anchorDate };
+}
+
+/** Distance logged on a date (skipped entries do not count). */
+function loggedKm(log: LogEntry[], date: LocalDate): number {
+  return log.reduce((a, e) => a + (e.date === date && !e.skipped ? e.distanceKm : 0), 0);
 }
 
 function derivePaces(state: PlannerState) {

@@ -47,10 +47,75 @@ describe('plan', () => {
     expect(a).toEqual(b);
   });
 
-  it('does not change within a week as days pass (stable anchor)', () => {
+  it('does not change within a week as days pass while the plan is followed (stable anchor)', () => {
     const mon = plan(baseState(), '2026-11-09');
-    const thu = plan(baseState(), '2026-11-12');
+    const log = mon.weeks[0]!.sessions.slice(0, 3).filter((x) => x.distanceKm > 0).map((x) => ({ id: x.id, date: x.date, distanceKm: x.distanceKm }));
+    const thu = plan(baseState({ log }), '2026-11-12');
     expect(thu.weeks.map((w) => w.sessions)).toEqual(mon.weeks.map((w) => w.sessions));
+    expect(thu.weeks[0]!.notes).toEqual(mon.weeks[0]!.notes);
+  });
+
+  describe('the current week follows the log', () => {
+    // Week of 2 Nov as planned: Mon rest · Tue easy · Wed tempo · Thu easy · Fri easy · Sat rest · Sun long.
+    const original = plan(baseState(), '2026-11-02');
+    const planned = original.weeks[0]!.sessions;
+    const run = (date: string, distanceKm: number): LogEntry => ({ id: date, date, distanceKm });
+
+    it('has the shape these tests rely on', () => {
+      expect(planned.map((x) => x.type)).toEqual(['rest', 'easy', 'tempo', 'easy', 'easy', 'rest', 'long']);
+    });
+
+    it('counts a run on a rest day and drops the next easy run for it', () => {
+      const s = plan(baseState({ log: [run('2026-11-02', 8)] }), '2026-11-03');
+      const week = s.weeks[0]!;
+      expect(week.sessions[0]).toMatchObject({ date: '2026-11-02', type: 'easy', distanceKm: 8, title: 'Ran 8 km' });
+      expect(week.sessions[1]).toMatchObject({ type: 'rest', distanceKm: 0 });
+      expect(week.sessions.slice(2)).toEqual(planned.slice(2));
+      expect(week.sessions.filter((x) => x.distanceKm > 0)).toHaveLength(5);
+      expect(week.notes.join(' ')).toContain('logged');
+      // Only the current week adapts.
+      expect(s.weeks.slice(1).map((w) => w.sessions)).toEqual(original.weeks.slice(1).map((w) => w.sessions));
+      // Doing Wednesday's session as planned changes nothing further.
+      const wed = plan(baseState({ log: [run('2026-11-02', 8), run('2026-11-04', 6.5)] }), '2026-11-05');
+      expect(wed.weeks[0]!.sessions).toEqual(week.sessions);
+    });
+
+    it('still counts that run when the rest of the week is re-planned with "Can\'t run"', () => {
+      const events: PlannerState['events'] = [{ id: 'a', kind: 'availability', weekOf: '2026-11-02', days: [0, 1, 2, 4, 5, 6] }];
+      const week = plan(baseState({ log: [run('2026-11-02', 8)], events }), '2026-11-03').weeks[0]!;
+      expect(week.sessions[0]).toMatchObject({ title: 'Ran 8 km', distanceKm: 8 });
+      expect(week.sessions[3]!.distanceKm).toBe(0);
+      expect(week.sessions.filter((x) => x.distanceKm > 0)).toHaveLength(5);
+    });
+
+    it('swaps the long run with an easy run that was run long, and back if the long run is run anyway', () => {
+      const followed = [run('2026-11-03', 6.5), run('2026-11-04', 6.5), run('2026-11-05', 6.5)];
+      // Friday's easy run turned into 14 km: that is the long run, and Sunday gets the easy run.
+      const sat = plan(baseState({ log: [...followed, run('2026-11-06', 14)] }), '2026-11-07').weeks[0]!;
+      expect(sat.sessions[4]).toMatchObject({ date: '2026-11-06', type: 'long', title: planned[6]!.title });
+      expect(sat.sessions[6]).toMatchObject({ date: '2026-11-08', type: 'easy', title: planned[4]!.title });
+      expect(sat.sessions.filter((x) => x.distanceKm > 0)).toHaveLength(5);
+      // The long run on Sunday as first planned: Friday counts as the easy run again.
+      const sun = plan(baseState({ log: [...followed, run('2026-11-06', 14), run('2026-11-08', 16)] }), '2026-11-08').weeks[0]!;
+      expect(sun.sessions).toEqual(planned);
+      expect(sun.notes).toEqual(original.weeks[0]!.notes);
+    });
+
+    it('treats today without an entry as not yet logged, and earlier days as missed', () => {
+      const tue = [run('2026-11-03', 6.5)];
+      // Wednesday, nothing logged for today: the tempo is still on.
+      expect(plan(baseState({ log: tue }), '2026-11-04').weeks[0]!.sessions).toEqual(planned);
+      // Thursday, still nothing for Wednesday: missed, so the tempo takes Thursday's easy run.
+      const thu = plan(baseState({ log: tue }), '2026-11-05').weeks[0]!;
+      expect(thu.sessions[2]).toMatchObject({ type: 'rest', distanceKm: 0 });
+      expect(thu.sessions[3]).toMatchObject({ date: '2026-11-05', type: 'tempo', title: planned[2]!.title });
+      expect(thu.sessions[3]!.description).toContain('Moved from Wed');
+      // Marking today as skipped settles it straight away.
+      const skipped = plan(baseState({ log: [...tue, { id: 'skip', date: '2026-11-04', distanceKm: 0, skipped: true }] }), '2026-11-04').weeks[0]!;
+      expect(skipped.sessions).toEqual(thu.sessions);
+      // A missed easy run is simply missed.
+      expect(plan(baseState(), '2026-11-04').weeks[0]!.sessions).toEqual(planned);
+    });
   });
 
   it('marks days before the plan was created as unplanned and pro-rates that week', () => {
