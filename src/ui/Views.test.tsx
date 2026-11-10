@@ -123,7 +123,7 @@ describe('views', () => {
     await waitFor(() => expect(state.value!.events).toHaveLength(3));
     expect(state.value!.events[2]).toMatchObject({ kind: 'block', from: '2026-12-24', to: '2026-12-28', reason: 'vacation' });
 
-    // Availability form.
+    // Availability form: defaults to every day of the week that is not blocked.
     await act(async () => {
       fireEvent.click(screen.getByText('Week availability'));
     });
@@ -131,19 +131,28 @@ describe('views', () => {
       fireEvent.click(screen.getByText('Save availability'));
     });
     await waitFor(() => expect(state.value!.events).toHaveLength(4));
-    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
+    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [0, 1, 2, 3, 4, 5, 6] });
+    // Picking the week of the vacation block (Thu 24 – Mon 28 Dec) leaves only Mon–Wed ticked.
+    await type(document.querySelector('input[type=date]')!, '2026-12-23');
+    await act(async () => {
+      fireEvent.click(screen.getByText('Save availability'));
+    });
+    await waitFor(() => expect(state.value!.events).toHaveLength(5));
+    expect(state.value!.events[4]).toMatchObject({ kind: 'availability', weekOf: '2026-12-21', days: [0, 1, 2] });
+    await type(document.querySelector('input[type=date]')!, '2026-11-04');
+    await waitFor(() => expect((screen.getByLabelText('Sun') as HTMLInputElement).checked).toBe(true));
     // Saving again for the same week replaces it.
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));
     });
-    await waitFor(() => expect(state.value!.events.filter((e) => e.kind === 'availability')).toHaveLength(1));
+    await waitFor(() => expect(state.value!.events.filter((e) => e.kind === 'availability' && e.weekOf === '2026-11-02')).toHaveLength(1));
 
     expect(screen.getByText(/Winter Half/)).toBeTruthy();
     expect(screen.getByText(/Vacation/)).toBeTruthy();
     await act(async () => {
       fireEvent.click(screen.getAllByText('Remove')[0]!);
     });
-    await waitFor(() => expect(state.value!.events).toHaveLength(3));
+    await waitFor(() => expect(state.value!.events).toHaveLength(4));
   });
 
   it('settings accept a custom goal and reference distance', async () => {

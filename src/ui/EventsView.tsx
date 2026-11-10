@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
-import { formatDate, startOfWeek, WEEKDAY_NAMES } from '@/domain/dates';
-import type { Weekday } from '@/domain/dates';
+import { addDays, formatDate, isBetween, startOfWeek, WEEKDAY_NAMES } from '@/domain/dates';
+import type { LocalDate, Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
 import { addEvent, entriesOn, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
@@ -175,9 +175,26 @@ function BlockForm() {
   );
 }
 
+const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
+
+/** The weekdays of the week containing `weekOf` that no break/injury block covers. */
+function unblockedDays(weekOf: LocalDate): Weekday[] {
+  const monday = startOfWeek(weekOf);
+  const blocks = state.value!.events.filter((ev) => ev.kind === 'block');
+  return ALL_DAYS.filter((d) => {
+    const date = addDays(monday, d);
+    return !blocks.some((b) => b.kind === 'block' && isBetween(date, b.from, b.to));
+  });
+}
+
 function AvailabilityForm() {
-  const [weekOf, setWeekOf] = useState(startOfWeek(todayDate.value));
-  const [days, setDays] = useState<Weekday[]>([1, 3, 6]);
+  const [weekOf, setWeekOfRaw] = useState(startOfWeek(todayDate.value));
+  // Default to every day the week has open (not blocked); re-derived when the week changes.
+  const [days, setDays] = useState<Weekday[]>(() => unblockedDays(weekOf));
+  const setWeekOf = (value: LocalDate) => {
+    setWeekOfRaw(value);
+    setDays(unblockedDays(value));
+  };
   const toggle = (d: Weekday) => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort((a, b) => a - b)));
   const submit = (e: Event) => {
     e.preventDefault();
