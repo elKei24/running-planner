@@ -43,6 +43,9 @@
 - Run days and quality days are chosen by comparing layouts instead of a fixed order of
   preference, so weeks with days taken stay evenly spread (ADR 0020).
 
+- The week availability form starts with every day of the chosen week that no break or injury
+  blocks, instead of the default run days.
+
 ## Open ideas (not scheduled)
 
 - GPX/FIT file import for logging.

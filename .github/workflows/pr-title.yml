@@ -37,3 +37,6 @@ jobs:
             ci
             chore
           requireScope: false
+          # A one-commit PR squashes to that commit's message unless the repository setting takes
+          # the PR title, so check the commit too and never let a plain message reach main.
+          validateSingleCommit: true
