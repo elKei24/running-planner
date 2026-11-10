@@ -1,7 +1,6 @@
-import { addDays, dateRange, formatDate, maxDate, minDate, startOfWeek, weekday, weeksBetween } from '@/domain/dates';
+import { addDays, dateRange, formatDate, startOfWeek, weekday, weeksBetween } from '@/domain/dates';
 import type { LocalDate, Weekday } from '@/domain/dates';
 import type {
-  AvailabilityEvent,
   BlockEvent,
   LogEntry,
   PlanWarning,
@@ -11,6 +10,7 @@ import type {
   Session,
   Week,
 } from '@/domain/types';
+import { adaptWeek } from './adapt';
 import { applyGoalRace, applyRaces } from './events';
 import { estimateFitness } from './fitness';
 import { formatDuration, paceZones, vdotFromRace } from './paces';
@@ -76,11 +76,6 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
   const units = state.prefs.units;
   // Return to running after a layoff: one easy-only week, two after a longer break.
   const easyOnlyWeeks = Math.min(2, fitness.layoffWeeks);
-  // The current week may have been re-planned part-way through: the days before that
-  // are history (kept as logged), for the template and for the overlays alike.
-  const currentOverride = state.events.find((e): e is AvailabilityEvent => e.kind === 'availability' && e.weekOf === anchorDate);
-  const replanFrom = currentOverride?.replanFrom ? minDate(currentOverride.replanFrom, todayDate) : undefined;
-  const notBefore = replanFrom ? maxDate(state.createdAt, replanFrom) : state.createdAt;
   const weeks: Week[] = phases.map((phase, i) => {
     const start = weekStarts[i]!;
     const vol = volumes[i]!;
@@ -98,10 +93,6 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     for (const d of dateRange(start, addDays(start, 6))) {
       const reason = blockedByDate.get(d);
       if (reason) blockedDates.set(d, reason);
-    }
-    const history = new Map<LocalDate, number>();
-    if (replanFrom && start === anchorDate) {
-      for (const d of dateRange(start, addDays(start, 6))) if (d < replanFrom && d >= state.createdAt) history.set(d, loggedKm(state.log, d));
     }
     const isRaceWeek = startOfWeek(state.goal.date) === start;
     // The week the plan was created in is usually partial: pro-rate its volume.
@@ -131,7 +122,6 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
       longFloorKm,
       paces,
       createdAt: state.createdAt,
-      history,
       phaseOrdinal,
       phaseLength,
       easyOnly,
@@ -143,13 +133,7 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
     if (vin.isStepBack) notes.push('Step-back week: lower volume so the previous weeks can sink in.');
     if (phase === 'taper' && !isRaceWeek) notes.push('Taper: volume drops, intensity stays. Trust the work.');
     if (vin.blockedDays > 0) notes.push(`${vin.blockedDays} day${vin.blockedDays > 1 ? 's' : ''} blocked this week; volume reduced.`);
-    if (override) {
-      notes.push(
-        history.size > 0
-          ? `Re-planned on ${formatDate(replanFrom!, { weekday: true })} with custom availability; the days before it count as logged.`
-          : 'Custom availability applied this week.',
-      );
-    }
+    if (override) notes.push('Custom availability applied this week.');
     if (vin.raceFactor < 1) notes.push('Tune-up race this week: slightly reduced volume around it.');
     if (phase === 'maintain') {
       const blockStart = weekStarts[phases.indexOf('build', i)];
@@ -161,13 +145,29 @@ export function plan(state: PlannerState, todayDate: LocalDate): Schedule {
   // Overlays operate on the flat date → session map.
   const map = new Map<LocalDate, Session>();
   for (const w of weeks) for (const s of w.sessions) map.set(s.date, s);
-  applyRaces(map, races, notBefore, paces, units);
+  applyRaces(map, races, state.createdAt, paces, units);
   const raceWeek = weeks[weeks.length - 1]!;
-  applyGoalRace(map, state.goal, raceWeek.targetKm, state.athlete.daysPerWeek, new Set(blockedByDate.keys()), notBefore, paces, units);
-  for (const w of weeks) {
-    w.sessions = w.sessions.map((s) => map.get(s.date) ?? s);
-    w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;
+  applyGoalRace(map, state.goal, raceWeek.targetKm, state.athlete.daysPerWeek, new Set(blockedByDate.keys()), state.createdAt, paces, units);
+  for (const w of weeks) w.sessions = w.sessions.map((s) => map.get(s.date) ?? s);
+
+  // The current week follows what was logged: days behind us are settled, and so is today once it has an entry.
+  const current = weeks[0]!;
+  const override = state.events.find((e) => e.kind === 'availability' && e.weekOf === anchorDate);
+  const availableDays = override && override.kind === 'availability' ? override.days : ALL_DAYS;
+  const logged = new Map<LocalDate, number>();
+  const open = new Set<LocalDate>();
+  for (const { date } of current.sessions) {
+    if (date < state.createdAt) continue;
+    if (date < todayDate || state.log.some((e) => e.date === date)) logged.set(date, loggedKm(state.log, date));
+    if (availableDays.includes(weekday(date)) && !blockedByDate.has(date)) open.add(date);
   }
+  const adapted = adaptWeek(current.sessions, logged, open, weeks[1]?.sessions, units);
+  if (adapted !== current.sessions) {
+    current.sessions = adapted;
+    current.notes.push('Adjusted to what you have logged so far this week.');
+  }
+
+  for (const w of weeks) w.targetKm = Math.round(w.sessions.reduce((a, s) => a + s.distanceKm, 0) * 10) / 10;
 
   warnings.push(...collectWarnings(state, totalWeeks, fitness.levelKm, paces?.predictedGoalTimeSec, races, blocks, weeks, timeCapKm));
   return { weeks, warnings, paces, fitness, anchorDate };

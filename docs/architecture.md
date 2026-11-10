@@ -29,14 +29,13 @@ that:
 
 1. **The fitness estimate only looks at completed weeks.** `estimateFitness` replays the log up to
    the Monday of the current week (the *anchor date*). Logging runs during the week does not change
-   this week's or next week's sessions; the plan updates at the week boundary.
+   this week's or next week's volume; the level updates at the week boundary.
 2. **Hysteresis in the level response.** Actual load within ±15 % of the expected load leaves the
    level unchanged (`levelResponse` in `fitness.ts`).
-
-A deliberate re-plan of the current week ("Can't run" on a later day, or saving the week's
-availability) is the exception: the override records the date it was made, and the days before it
-are kept as the log says rather than planned again. The rest of the week is built around what
-already happened (ADR 0019).
+3. **The current week only moves when the log departs from it.** `adaptWeek` fits the week to
+   what was logged: a run on a rest day replaces an easy run, a missed long run or quality session
+   moves to a later day when the spacing allows, a missed easy run is dropped. A run on its
+   planned day counts as that session, so following the plan changes nothing (ADR 0019).
 
 ## Layers
 
@@ -50,6 +49,7 @@ src/
     volume.ts     forward simulation of weekly volume (ramp limit, step-backs, blocks, taper)
     template.ts   one week → sessions (which day, which type, how far, descriptions)
     events.ts     overlays by date: tune-up races, goal race week, post-race recovery
+    adapt.ts      the current week, fitted to what has been logged so far
     plan.ts       orchestrates the above and produces warnings
   store/     schema validation, migrations, localStorage persistence, Preact signals
   io/        JSON export/import, iCalendar export

@@ -37,8 +37,8 @@
 - Past races: enter a race after the fact with its result, log it, use it for paces, and get the
   recovery days even when the race was before the current week (ADR 0016).
 
-- Re-planning the current week keeps the days already behind us as logged, and plans the rest of
-  the week around them (ADR 0019).
+- The current week follows the log: runs on rest days count, missed key sessions move to a later
+  day when the spacing allows (ADR 0019).
 
 ## Open ideas (not scheduled)
 

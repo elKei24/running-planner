@@ -3,7 +3,7 @@ import { formatDate, startOfWeek, WEEKDAY_NAMES } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import type { PlanEvent } from '@/domain/types';
 import { formatDuration } from '@/planner/paces';
-import { addEvent, entriesOn, removeEvent, setAvailability, state, todayDate, updateAthlete } from '@/store/state';
+import { addEvent, entriesOn, removeEvent, state, todayDate, updateAthlete } from '@/store/state';
 import { DISTANCE_PRESETS, km, loggedPace } from './format';
 import { DistanceField } from './forms';
 
@@ -92,7 +92,7 @@ function detail(e: PlanEvent): string {
     case 'block':
       return e.from === e.to ? formatDate(e.from, { weekday: true, year: true }) : `${formatDate(e.from, { weekday: true })} – ${formatDate(e.to, { weekday: true, year: true })}${e.note ? ` · ${e.note}` : ''}`;
     case 'availability':
-      return `Week of ${formatDate(e.weekOf, { year: true })}: ${e.days.map((d) => WEEKDAY_NAMES[d]).join(', ') || 'no days'}${e.replanFrom ? ` · re-planned on ${formatDate(e.replanFrom, { weekday: true })}` : ''}`;
+      return `Week of ${formatDate(e.weekOf, { year: true })}: ${e.days.map((d) => WEEKDAY_NAMES[d]).join(', ') || 'no days'}`;
   }
 }
 
@@ -181,7 +181,10 @@ function AvailabilityForm() {
   const toggle = (d: Weekday) => setDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort((a, b) => a - b)));
   const submit = (e: Event) => {
     e.preventDefault();
-    setAvailability(startOfWeek(weekOf), days);
+    const monday = startOfWeek(weekOf);
+    const existing = state.value!.events.find((ev) => ev.kind === 'availability' && ev.weekOf === monday);
+    if (existing) removeEvent(existing.id);
+    addEvent({ kind: 'availability', weekOf: monday, days });
   };
   return (
     <form onSubmit={submit} class="stack">

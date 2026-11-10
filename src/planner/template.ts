@@ -86,12 +86,6 @@ export interface WeekTemplateInput {
   paces?: PaceZones;
   /** Days before this date are not planned. */
   createdAt: LocalDate;
-  /**
-   * Days of this week that had already passed when it was re-planned, with the
-   * distance logged on each (0 = no run). They are not planned; the rest of the
-   * week is built around them.
-   */
-  history?: Map<LocalDate, number>;
   /** Position of this week within its phase (0 = first week of the phase). */
   phaseOrdinal?: number;
   /** Number of weeks in this week's phase. */
@@ -177,17 +171,12 @@ function circularDistance(a: Weekday, b: Weekday): number {
   return Math.min(d, 7 - d);
 }
 
-/**
- * Pick which weekdays are run days and which roles they play. With `withLong`
- * false (the long run has already happened this week) the preferred long-run
- * day still anchors the spacing, but no long run is placed.
- */
+/** Pick which weekdays are run days and which roles they play. */
 export function chooseRunDays(
   longRunDay: Weekday,
   daysPerWeek: number,
   available: Weekday[],
   qualityCount: number,
-  withLong = true,
 ): { long?: Weekday; quality: Weekday[]; easy: Weekday[] } {
   const avail = new Set(available);
   if (avail.size === 0 || daysPerWeek <= 0) return { quality: [], easy: [] };
@@ -203,10 +192,9 @@ export function chooseRunDays(
   }
   if (long === undefined) return { quality: [], easy: [] };
 
-  const anchor = withLong ? long : longRunDay;
-  const ordered = dayOffsets.map((o) => ((anchor + o) % 7) as Weekday).filter((d) => avail.has(d));
+  const ordered = dayOffsets.map((o) => ((long! + o) % 7) as Weekday).filter((d) => avail.has(d));
   const runDays = ordered.slice(0, Math.min(daysPerWeek, ordered.length));
-  const others = withLong ? runDays.filter((d) => d !== long) : runDays;
+  const others = runDays.filter((d) => d !== long);
 
   const quality: Weekday[] = [];
   const wanted = Math.min(qualityCount, others.length);
@@ -214,14 +202,14 @@ export function chooseRunDays(
     for (const d of others) {
       if (quality.length >= wanted) break;
       if (quality.includes(d)) continue;
-      if (circularDistance(d, anchor) < minGap) continue;
+      if (circularDistance(d, long) < minGap) continue;
       if (quality.some((q) => circularDistance(q, d) < minGap)) continue;
       quality.push(d);
     }
     if (quality.length >= wanted) break;
   }
   const easy = others.filter((d) => !quality.includes(d));
-  return withLong ? { long, quality, easy } : { quality, easy };
+  return { long, quality, easy };
 }
 
 export interface Distribution {
@@ -230,11 +218,7 @@ export interface Distribution {
   easyKm: number[];
 }
 
-/**
- * Split the weekly volume between long run, quality sessions and easy days.
- * With `withLong` false there is no long run to place (it already happened):
- * the volume goes to the quality and easy days, each still within the long-run cap.
- */
+/** Split the weekly volume between long run, quality sessions and easy days. */
 export function distribute(
   targetKm: number,
   phase: Phase,
@@ -242,13 +226,12 @@ export function distribute(
   qualityCount: number,
   easyDays: number,
   longFloorKm = 0,
-  withLong = true,
 ): Distribution {
   const target = Math.max(0, targetKm);
   const cap = Math.min(longCapKm, MAX_LONG_RUN_KM);
   // The caller is responsible for keeping the floor a sane share of the week.
   const wanted = Math.max(target * longRunFraction(phase, target), longFloorKm);
-  let longKm = withLong ? Math.min(wanted, cap) : 0;
+  let longKm = Math.min(wanted, cap);
   const qFraction = phase === 'base' ? 0.15 : 0.18;
   // No other run may exceed the long-run cap: volume that cannot be placed is dropped.
   const perRunCap = Math.max(cap, MIN_QUALITY_RUN_KM);
@@ -266,14 +249,14 @@ export function distribute(
       remaining = target - longKm - sum(qualityKm);
     }
     if (remaining < 0) {
-      longKm = withLong ? Math.min(longKm, Math.max(target, longFloorKm)) : 0;
+      longKm = Math.min(longKm, Math.max(target, longFloorKm));
       remaining = 0;
     }
   } else if (easyCount === 0 && remaining > 0) {
     // Nowhere to put the remainder: let the long run absorb what the cap allows.
-    const extra = withLong ? Math.max(0, Math.min(remaining, cap - longKm)) : 0;
-    longKm += extra;
-    remaining -= extra;
+    const extra = Math.min(remaining, cap - longKm);
+    longKm += Math.max(0, extra);
+    remaining -= Math.max(0, extra);
     if (qualityKm.length > 0 && remaining > 0) {
       const perQ = remaining / qualityKm.length;
       qualityKm = qualityKm.map((q) => Math.min(perRunCap, q + perQ));
@@ -282,13 +265,12 @@ export function distribute(
 
   // The long run should be the longest run of the week. In small weeks the
   // easy remainder can exceed it; equalise within the long-run cap.
-  if (withLong && easyCount > 0 && remaining / easyCount > longKm) {
+  if (easyCount > 0 && remaining / easyCount > longKm) {
     const equal = Math.min(cap, (longKm + remaining) / (easyCount + 1));
     remaining -= Math.max(0, equal - longKm);
     longKm = Math.max(longKm, equal);
   }
-  const easyCap = withLong ? Math.max(longKm, MIN_EASY_RUN_KM) : perRunCap;
-  const easyPer = easyCount > 0 ? Math.min(remaining / easyCount, easyCap) : 0;
+  const easyPer = easyCount > 0 ? Math.min(remaining / easyCount, Math.max(longKm, MIN_EASY_RUN_KM)) : 0;
   const easyKm = Array<number>(easyCount).fill(easyPer);
   return {
     longKm: roundHalf(longKm),
@@ -367,7 +349,6 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
     longFloorKm = 0,
     paces,
     createdAt,
-    history = new Map<LocalDate, number>(),
     phaseOrdinal = 0,
     phaseLength = 1,
     easyOnly = false,
@@ -375,27 +356,13 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
   } = input;
 
   const dates = Array.from({ length: 7 }, (_, i) => addDays(startDate, i));
-  // Days the week could use at all, and those still open once the days a re-plan left behind are taken out.
-  const open = availableDays.filter((d) => !blockedDates.has(dates[d]!) && dates[d]! >= createdAt);
-  const available = open.filter((d) => !history.has(dates[d]!));
+  const available = availableDays.filter((d) => !blockedDates.has(dates[d]!) && dates[d]! >= createdAt);
   const reduced = isStepBack || blockedDates.size >= 3;
   // Tiny weeks and return-to-running weeks: just run easy.
   const kinds = easyOnly || targetKm < MIN_WEEK_FOR_QUALITY_KM ? [] : qualityKinds(phase, index, daysPerWeek, reduced, phaseOrdinal, phaseLength);
   const f = (n: number) => fmtKm(n, units);
-
-  // What already happened on the days behind us counts against the week's run days and volume.
-  const doneRuns = [...history.values()].filter((km) => km > 0).length;
-  const doneKm = sum([...history.values()]);
-  // The long run belongs to the day it would get with the whole week open. Once that day has
-  // passed it is not planned again: done is done, and a missed long run is simply missed.
-  const longDay = history.size > 0 ? chooseRunDays(longRunDay, daysPerWeek, open, kinds.length).long : undefined;
-  const longPassed = longDay !== undefined && history.has(dates[longDay]!);
-  const longMissed = longPassed && !((history.get(dates[longDay]!) ?? 0) > 0);
-  const missedLongKm = longMissed ? Math.min(longCapKm, MAX_LONG_RUN_KM, Math.max(targetKm * longRunFraction(phase, targetKm), longFloorKm)) : 0;
-  const remainingKm = Math.max(0, targetKm - doneKm - missedLongKm);
-
-  const roles = chooseRunDays(longRunDay, Math.max(0, daysPerWeek - doneRuns), available, kinds.length, !longPassed);
-  const dist = distribute(remainingKm, phase, longCapKm, roles.quality.length, roles.easy.length, longFloorKm, !longPassed);
+  const roles = chooseRunDays(longRunDay, daysPerWeek, available, kinds.length);
+  const dist = distribute(targetKm, phase, longCapKm, roles.quality.length, roles.easy.length, longFloorKm);
 
   const sessions: Session[] = dates.map((date, d) => {
     const blocked = blockedDates.get(date);
@@ -404,12 +371,6 @@ export function buildWeek(input: WeekTemplateInput): Session[] {
     }
     if (blocked) {
       return { ...make(date, 'rest', 0, phase, 'Rest', `Blocked: ${blocked}.`), adjusted: true };
-    }
-    const done = history.get(date);
-    if (done !== undefined) {
-      return done > 0
-        ? { ...make(date, 'easy', done, phase, `Ran ${f(done)}`, 'Logged before the week was re-planned; the rest of the week is built around it.'), adjusted: true }
-        : { ...make(date, 'rest', 0, phase, 'Rest', 'No run logged before the week was re-planned.'), adjusted: true };
     }
     if (roles.long === d) {
       return {
