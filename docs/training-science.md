@@ -40,6 +40,10 @@ than a finding, it says so. Sources are listed at the end.
   the marathon zone is ±2 % around the equal-effort prediction.
 - **Strides** on the easy day before a quality session from the build phase on (neuromuscular
   stimulus, negligible fatigue).
+- **Hard days apart.** A single quality session goes where it is three days clear of the long
+  runs on both sides: mid-week by default (Wednesday for a Sunday long run), the day after when
+  that day is taken. Two quality sessions keep two days from the long run and from each other
+  (`chooseRunDays`).
 
 ## Long runs
 

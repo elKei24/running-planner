@@ -196,17 +196,26 @@ export function chooseRunDays(
   const runDays = ordered.slice(0, Math.min(daysPerWeek, ordered.length));
   const others = runDays.filter((d) => d !== long);
 
-  const quality: Weekday[] = [];
   const wanted = Math.min(qualityCount, others.length);
-  for (const minGap of [2, 1, 0]) {
+  /** Add run days, in order of preference, that keep `minGap` days from the long run and from each other. */
+  const place = (chosen: Weekday[], minGap: number): Weekday[] => {
     for (const d of others) {
-      if (quality.length >= wanted) break;
-      if (quality.includes(d)) continue;
+      if (chosen.length >= wanted) break;
+      if (chosen.includes(d)) continue;
       if (circularDistance(d, long) < minGap) continue;
-      if (quality.some((q) => circularDistance(q, d) < minGap)) continue;
-      quality.push(d);
+      if (chosen.some((q) => circularDistance(q, d) < minGap)) continue;
+      chosen.push(d);
     }
+    return chosen;
+  };
+  // Most room first: three days clear of the long run on both sides. Only a single session can have
+  // that, and it matters when the usual mid-week day is taken: the day after it then beats the
+  // days that sit two days from a long run. Otherwise settle for two days, then one, then any.
+  let quality = place([], 3);
+  if (quality.length < wanted) quality = [];
+  for (const minGap of [2, 1, 0]) {
     if (quality.length >= wanted) break;
+    place(quality, minGap);
   }
   const easy = others.filter((d) => !quality.includes(d));
   return { long, quality, easy };

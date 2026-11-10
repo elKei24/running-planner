@@ -34,6 +34,17 @@ describe('chooseRunDays', () => {
     expect(r.easy.sort()).toEqual([1, 3]); // Tue, Thu
   });
 
+  it('gives a single quality session the most room to the long run', () => {
+    // Every day available: mid-week, three days after one long run and four before the next.
+    expect(chooseRunDays(6, 4, ALL, 1)).toEqual({ long: 6, quality: [2], easy: [4, 1] });
+    // Wednesday taken: Thursday (three days before the long run) beats Friday (two days before).
+    expect(chooseRunDays(6, 4, [0, 1, 3, 4, 5, 6], 1)).toEqual({ long: 6, quality: [3], easy: [4, 1] });
+    // Thursday is only an option when it is a run day at all.
+    expect(chooseRunDays(6, 3, [0, 1, 3, 4, 5, 6], 1)).toEqual({ long: 6, quality: [4], easy: [1] });
+    // Two sessions cannot both have three days all round: their days stay as they were.
+    expect(chooseRunDays(6, 5, [0, 1, 3, 4, 5, 6], 2).quality).toEqual([4, 1]);
+  });
+
   it('moves the long run to the nearest available day', () => {
     const r = chooseRunDays(6, 4, [0, 1, 2, 3, 4, 5], 1);
     expect(r.long).toBe(5);
