@@ -33,6 +33,11 @@ that:
 2. **Hysteresis in the level response.** Actual load within ±15 % of the expected load leaves the
    level unchanged (`levelResponse` in `fitness.ts`).
 
+A deliberate re-plan of the current week ("Can't run" on a later day, or saving the week's
+availability) is the exception: the override records the date it was made, and the days before it
+are kept as the log says rather than planned again. The rest of the week is built around what
+already happened (ADR 0019).
+
 ## Layers
 
 ```

@@ -131,7 +131,8 @@ describe('views', () => {
       fireEvent.click(screen.getByText('Save availability'));
     });
     await waitFor(() => expect(state.value!.events).toHaveLength(4));
-    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6] });
+    // Saved part-way through the current week: a re-plan from today.
+    expect(state.value!.events[3]).toMatchObject({ kind: 'availability', weekOf: '2026-11-02', days: [1, 3, 6], replanFrom: '2026-11-06' });
     // Saving again for the same week replaces it.
     await act(async () => {
       fireEvent.click(screen.getByText('Save availability'));

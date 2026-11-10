@@ -2,7 +2,7 @@ import { isLocalDate } from '@/domain/dates';
 import type { Weekday } from '@/domain/dates';
 import { SCHEMA_VERSION } from '@/domain/types';
 import { MAX_MAX_HR, MIN_MAX_HR } from '@/domain/heartRate';
-import type { Athlete, Goal, LogEntry, PlanEvent, PlannerState, Prefs } from '@/domain/types';
+import type { Athlete, AvailabilityEvent, Goal, LogEntry, PlanEvent, PlannerState, Prefs } from '@/domain/types';
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -111,7 +111,9 @@ export function validateEvent(v: unknown, path: string): PlanEvent {
     case 'availability': {
       if (!Array.isArray(o.days)) fail(`${path}.days`, 'an array of weekdays');
       const days = [...new Set(o.days.map((d, i) => weekday(d, `${path}.days[${i}]`)))].sort((a, b) => a - b);
-      return { id, kind: 'availability', weekOf: date(o.weekOf, `${path}.weekOf`), days };
+      const e: AvailabilityEvent = { id, kind: 'availability', weekOf: date(o.weekOf, `${path}.weekOf`), days };
+      if (o.replanFrom !== undefined && o.replanFrom !== null) e.replanFrom = date(o.replanFrom, `${path}.replanFrom`);
+      return e;
     }
     default:
       return fail(`${path}.kind`, "'race', 'block' or 'availability'");

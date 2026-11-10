@@ -55,7 +55,17 @@ export type BlockReason = 'vacation' | 'injury' | 'illness' | 'other';
 export type PlanEvent =
   | { id: string; kind: 'race'; date: LocalDate; distanceKm: number; priority: Priority; name?: string }
   | { id: string; kind: 'block'; from: LocalDate; to: LocalDate; reason: BlockReason; note?: string }
-  | { id: string; kind: 'availability'; weekOf: LocalDate; days: Weekday[] };
+  | {
+      id: string;
+      kind: 'availability';
+      weekOf: LocalDate;
+      days: Weekday[];
+      /**
+       * Set when the override was recorded part-way through its week (a re-plan):
+       * the days of that week before this date are kept as logged, not planned again.
+       */
+      replanFrom?: LocalDate;
+    };
 
 export type RaceEvent = Extract<PlanEvent, { kind: 'race' }>;
 export type BlockEvent = Extract<PlanEvent, { kind: 'block' }>;

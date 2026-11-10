@@ -192,7 +192,7 @@ export function applyGoalRace(
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const candidates = days
       .map((d) => sessions.get(d))
-      .filter((s): s is Session => !!s && isRun(s) && !patternDates.has(s.date) && s.date < goal.date)
+      .filter((s): s is Session => !!s && isRun(s) && !patternDates.has(s.date) && s.date >= notBefore && s.date < goal.date)
       .sort((a, b) => priority[a.type] - priority[b.type]);
     let runs = days.filter((d) => isRun(sessions.get(d))).length;
     for (const s of candidates) {

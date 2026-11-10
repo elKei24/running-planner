@@ -42,6 +42,9 @@ describe('validateState', () => {
   it('normalises availability days (dedupe + sort) and optional fields', () => {
     const s = validateState({ ...valid, events: [{ id: 'a', kind: 'availability', weekOf: '2026-11-16', days: [6, 1, 6] }], log: [{ id: 'l', date: '2026-11-03', distanceKm: 5, note: '', rpe: null }] });
     expect(s.events[0]).toEqual({ id: 'a', kind: 'availability', weekOf: '2026-11-16', days: [1, 6] });
+    const replanned = validateState({ ...valid, events: [{ id: 'a', kind: 'availability', weekOf: '2026-11-16', days: [1, 6], replanFrom: '2026-11-18' }] });
+    expect(replanned.events[0]).toEqual({ id: 'a', kind: 'availability', weekOf: '2026-11-16', days: [1, 6], replanFrom: '2026-11-18' });
+    expect(() => validateState({ ...valid, events: [{ id: 'a', kind: 'availability', weekOf: '2026-11-16', days: [1], replanFrom: 'yesterday' }] })).toThrow(/replanFrom/);
     expect(s.log[0]).toEqual({ id: 'l', date: '2026-11-03', distanceKm: 5 });
   });
 });

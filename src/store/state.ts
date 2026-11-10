@@ -115,18 +115,34 @@ export function setUnits(units: Units): void {
 const ALL_DAYS: Weekday[] = [0, 1, 2, 3, 4, 5, 6];
 
 /**
+ * Record which weekdays the athlete can run in the week of `weekOf`, replacing
+ * any earlier override for that week. Done part-way through the current week
+ * this is a re-plan: the days already behind us stay as they were logged, and
+ * only the rest of the week is planned again.
+ */
+export function setAvailability(weekOf: LocalDate, days: Weekday[]): string {
+  const today = todayDate.value;
+  const replanFrom = weekOf === startOfWeek(today) && today > weekOf ? today : undefined;
+  let id = '';
+  update((s) => {
+    const existing = s.events.find((e) => e.kind === 'availability' && e.weekOf === weekOf);
+    id = existing?.id ?? newId('availability');
+    const others = s.events.filter((e) => e !== existing);
+    return { ...s, events: [...others, { id, kind: 'availability', weekOf, days, ...(replanFrom ? { replanFrom } : {}) }] };
+  });
+  return id;
+}
+
+/**
  * "I can't run on this day": records an availability override for that week
  * without the given weekday. The planner re-plans the week with the days left.
  */
 export function excludeDay(date: LocalDate): void {
   const weekOf = startOfWeek(date);
   const day = weekday(date);
-  update((s) => {
-    const existing = s.events.find((e) => e.kind === 'availability' && e.weekOf === weekOf);
-    const days = (existing && existing.kind === 'availability' ? existing.days : ALL_DAYS).filter((d) => d !== day);
-    const others = s.events.filter((e) => e !== existing);
-    return { ...s, events: [...others, { id: existing?.id ?? newId('availability'), kind: 'availability', weekOf, days }] };
-  });
+  const existing = state.value?.events.find((e) => e.kind === 'availability' && e.weekOf === weekOf);
+  const days = (existing && existing.kind === 'availability' ? existing.days : ALL_DAYS).filter((d) => d !== day);
+  setAvailability(weekOf, days);
 }
 
 export function logRun(entry: Omit<LogEntry, 'id'> & { id?: string }): string {
