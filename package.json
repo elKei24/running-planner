@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0-development",
   "type": "module",
-  "description": "Adaptive, backend-free marathon training planner",
+  "description": "Adaptive, backend-free running training planner for any race distance",
   "engines": {
     "node": ">=26"
   },

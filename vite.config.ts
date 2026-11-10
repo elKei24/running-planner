@@ -34,7 +34,7 @@ export default defineConfig({
       manifest: {
         name: 'Running Planner',
         short_name: 'Planner',
-        description: 'Adaptive marathon training plan that lives in your browser.',
+        description: 'Adaptive running training plan for any race distance that lives in your browser.',
         theme_color: '#17181c',
         background_color: '#121316',
         display: 'standalone',
