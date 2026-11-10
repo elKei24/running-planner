@@ -219,6 +219,9 @@ describe('plan', () => {
     // A run on Monday's rest day takes Tuesday's easy run; the tempo still follows two days off.
     const adjusted = plan(baseState({ athlete, events, log: [{ id: 'mon', date: '2026-11-02', distanceKm: 8.4 }] }), '2026-11-03').weeks[0]!;
     expect(adjusted.sessions.map((x) => x.type)).toEqual(['easy', 'rest', 'rest', 'tempo', 'easy', 'rest', 'long']);
+    // Three runs a week: Thursday becomes a run day for it, rather than Friday keeping the tempo.
+    const three = plan(baseState({ athlete: { ...athlete, daysPerWeek: 3 }, events }), '2026-11-02').weeks[0]!;
+    expect(three.sessions.map((x) => x.type)).toEqual(['rest', 'easy', 'rest', 'tempo', 'rest', 'rest', 'long']);
   });
 
   it('build fast, then maintain: peak volume by week 16, a held middle, and a marathon block', () => {
