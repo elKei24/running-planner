@@ -66,14 +66,12 @@ The *Renovate* workflow runs [Renovate](https://docs.renovatebot.com/) on Monday
 opens dependency update PRs. Minor, patch and digest updates come as one grouped PR that merges
 automatically when CI is green; major updates get their own PRs and wait for a manual merge.
 
-One-time repository setup, after this workflow has landed on `main`: run
-`scripts/github-setup.sh` (needs the GitHub CLI) or apply the same in the settings UI: squash
-merge only with the commit message taken from the PR title and description, a ruleset on `main`
-that requires a PR and the *Typecheck, lint, test, build* and *Validate PR title* checks, and
-*Pages → Source* set to **GitHub Actions**. For Renovate, create a fine-grained personal access
-token for this repository with read and write access to commit statuses, contents, issues, pull
-requests and workflows, and store it as the `RENOVATE_TOKEN` repository secret
-(`gh secret set RENOVATE_TOKEN`).
+One-time repository setup, in the GitHub settings: squash merge only with the commit message taken
+from the PR title and description, a ruleset on `main` that requires a PR and the *Typecheck, lint,
+test, build* and *Validate PR title* checks, and *Pages → Source* set to **GitHub Actions**. For
+Renovate, create a fine-grained personal access token for this repository with read and write
+access to commit statuses, contents, issues, pull requests and workflows, and store it as the
+`RENOVATE_TOKEN` repository secret (`gh secret set RENOVATE_TOKEN`).
 
 ## License
 
