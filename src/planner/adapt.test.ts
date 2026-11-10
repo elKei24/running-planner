@@ -67,6 +67,40 @@ describe('adaptWeek', () => {
     expect(short[6]).toEqual(base[6]);
   });
 
+  it('swaps the long run with an easy run that was run long enough', () => {
+    // Sat easy 6 · Sun long 18
+    const plan = week([['rest', 0], ['easy', 8], ['tempo', 9], ['rest', 0], ['easy', 8], ['easy', 6], ['long', 18]]);
+    const swapped = adaptWeek(plan, log(0, 8, 9, 0, 8, 15), ALL);
+    expect(swapped[5]).toMatchObject({ id: '2026-11-14-long', date: '2026-11-14', type: 'long', distanceKm: 18, adjusted: true });
+    expect(swapped[5]!.description).toContain('planned on Sun');
+    expect(swapped[6]).toMatchObject({ id: '2026-11-15-easy', date: '2026-11-15', type: 'easy', distanceKm: 6, adjusted: true });
+    expect(swapped[6]!.description).toContain('done on Sat');
+    expect(swapped.slice(0, 5)).toEqual(plan.slice(0, 5));
+    // Running the easy run on Sunday keeps the swap...
+    expect(adaptWeek(plan, log(0, 8, 9, 0, 8, 15, 6), ALL)).toEqual(swapped);
+    // ...and running long on Sunday after all swaps back: Saturday was the easy run.
+    expect(adaptWeek(plan, log(0, 8, 9, 0, 8, 15, 17), ALL)).toBe(plan);
+    // A run somewhat over the planned easy distance is still the easy run.
+    expect(adaptWeek(plan, log(0, 8, 9, 0, 8, 12), ALL)).toBe(plan);
+    // Nor does it apply when the easy run as planned would already pass for the long run.
+    const flat = week([['easy', 8], ['rest', 0], ['rest', 0], ['rest', 0], ['rest', 0], ['rest', 0], ['long', 9]]);
+    expect(adaptWeek(flat, log(8.5), ALL)).toBe(flat);
+  });
+
+  it('swaps back when the long run is run on its own day after a long run on a rest day', () => {
+    const out = adaptWeek(base, log(0, 8, 9, 8, 9, 15, 17), ALL);
+    expect(out[5]).toMatchObject({ title: 'Ran 15 km', description: 'Extra run on top of the plan.' });
+    expect(out[6]).toBe(base[6]);
+  });
+
+  it('lets a long enough run on an easy day make up for a missed long run', () => {
+    const monLong = week([['long', 18], ['easy', 6], ['rest', 0], ['tempo', 8], ['rest', 0], ['easy', 6], ['rest', 0]]);
+    const out = adaptWeek(monLong, log(0, 15), new Set<string>());
+    expect(out[0]).toMatchObject({ type: 'rest', distanceKm: 0, description: 'Done on Tue instead.' });
+    expect(out[1]).toMatchObject({ date: '2026-11-10', type: 'long', distanceKm: 18 });
+    expect(out.slice(2)).toEqual(monLong.slice(2));
+  });
+
   it('moves a missed long run to the next day that fits', () => {
     const wedLong = week([['easy', 6], ['rest', 0], ['long', 18], ['rest', 0], ['easy', 6], ['tempo', 8], ['easy', 6]]);
     const out = adaptWeek(wedLong, log(6, 0, 0), ALL, wedLong);

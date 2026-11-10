@@ -22,8 +22,12 @@ days are replayed in order, each against the plan as it stood that morning:
 
 - A run on a planned run day counts as that session, whatever its distance. Following the plan
   therefore changes nothing, and following an adjusted plan does not change it again.
+- The exception is a run on an easy day that covers at least 80 % of the long run still to come
+  (and the easy run as planned would not): it is the long run, done early, and the easy run takes
+  the long run's day. If the long run is then run on its own day after all, the two swap back
+  and the earlier run counts as the easy run.
 - A run on a rest day makes up for a session missed earlier in the week. It counts as the long
-  run if it covers at least 80 % of it. Otherwise it replaces the next easy run.
+  run under the same 80 % rule, with the same way back. Otherwise it replaces the next easy run.
 - A missed long run or quality session moves to a later day: a free day first, else in place of
   an easy run. It keeps two days from other hard sessions (a long run may sit next to a quality
   session, but stays at least three days from another long run or a race), stays out of the last
@@ -42,6 +46,6 @@ week's sessions, not its volume target or the weeks after it.
 - Logging late can move the plan twice: yesterday's unlogged tempo shows up today, and goes away
   once yesterday is logged. Accepted; the week note says the week was adjusted.
 - The log stores distance, not intent. An easy jog on a tempo day counts as the tempo, and a
-  long run done a day early on an *easy* day is not recognised as the long run.
+  long run done on a quality day is not recognised as the long run.
 - An availability change or block made part-way through the week still re-plans the template for
   the days behind us, so those can be relabelled. What was logged on them now counts either way.

@@ -3,7 +3,7 @@ import type { LocalDate } from '@/domain/dates';
 import type { Session, Units } from '@/domain/types';
 import { fmtKm } from './template';
 
-/** A run on a rest day counts as the week's long run from this share of its distance. */
+/** A run on a rest or easy day counts as the week's long run from this share of its distance. */
 export const LONG_RUN_MATCH = 0.8;
 /** A moved long run or quality session keeps this many days from other hard sessions. */
 export const KEY_SESSION_GAP_DAYS = 2;
@@ -25,6 +25,18 @@ const isRun = (s: Session) => s.type !== 'rest' && s.distanceKm > 0;
 const isEasyRun = (s: Session) => (s.type === 'easy' || s.type === 'recovery') && s.distanceKm > 0;
 const dayName = (s: Session) => WEEKDAY_NAMES[weekday(s.date)];
 
+/** The long run done early on another day, and what to put back if it is run on its own day after all. */
+interface LongSwap {
+  early: number;
+  late: number;
+  /** The long run as it was planned on the late day. */
+  long: Session;
+  /** What took its place there. */
+  placed: Session;
+  /** The easy run planned on the early day, if there was one. */
+  restore?: Session;
+}
+
 function rest(s: Session, description: string): Session {
   return { id: `${s.date}-rest`, date: s.date, type: 'rest', distanceKm: 0, title: 'Rest', description, phase: s.phase, adjusted: true };
 }
@@ -41,6 +53,8 @@ function rest(s: Session, description: string): Session {
  * that morning, so following the adjusted plan never changes it again:
  *
  * - A run on a planned run day counts as that session, whatever its distance.
+ * - Except a run on an easy day that is long enough to be the long run: the
+ *   two swap days. Running long on the original day after all swaps them back.
  * - A run on a rest day makes up for a session missed earlier (the long run if
  *   it was long enough); otherwise it replaces the next easy run.
  * - A missed long run or quality session moves to a later day when the spacing
@@ -50,15 +64,28 @@ function rest(s: Session, description: string): Session {
  */
 export function adaptWeek(sessions: Session[], logged: Map<LocalDate, number>, open: Set<LocalDate>, nextWeek: Session[] = [], units: Units = 'km'): Session[] {
   const out = [...sessions];
-  let changed = false;
   const set = (i: number, s: Session) => {
     out[i] = s;
-    changed = true;
   };
   /** Hard sessions actually run, by weekday index. */
   const done = new Map<number, Hard>();
   /** Missed sessions that found no new day; they stay on show as planned. */
   let dropped: number[] = [];
+  let swap: LongSwap | undefined;
+
+  /** The long run still to be done, seen from day `i`: ahead, or missed without a new day. */
+  const openLong = (i: number) => out.findIndex((x, p) => x.type === 'long' && (p > i || dropped.includes(p)));
+  const longEnough = (km: number, long: Session) => km >= LONG_RUN_MATCH * long.distanceKm;
+
+  /** The long run was counted as done early, and is now run on its own day after all: undo the swap. */
+  const shiftBack = (i: number, km: number): boolean => {
+    if (!swap || swap.late !== i || out[i] !== swap.placed || !longEnough(km, swap.long)) return false;
+    set(i, swap.long);
+    set(swap.early, swap.restore ?? { ...out[swap.early]!, description: 'Extra run on top of the plan.' });
+    done.set(i, 'long');
+    swap = undefined;
+    return true;
+  };
 
   /** Where the hard sessions are, seen from day `i`: the ones done, the ones ahead, and next week's (index 7..). */
   const hardFrom = (i: number) => {
@@ -102,7 +129,25 @@ export function adaptWeek(sessions: Session[], logged: Map<LocalDate, number>, o
     const km = logged.get(s.date);
     if (km === undefined) continue; // not settled: a day ahead, or today without an entry
 
+    if (km > 0 && shiftBack(i, km)) continue;
+
     if (km > 0 && isRun(s)) {
+      const long = openLong(i);
+      const l = long >= 0 ? out[long]! : undefined;
+      // An easy day run long enough to be the long run (and clearly more than the easy run planned): the two swap.
+      if (l && isEasyRun(s) && longEnough(km, l) && !longEnough(s.distanceKm, l)) {
+        if (long > i) {
+          const placed: Session = { ...s, id: `${l.date}-${s.type}`, date: l.date, description: `${s.description} Swapped with the long run, done on ${dayName(s)}.`, adjusted: true };
+          set(long, placed);
+          swap = { early: i, late: long, long: l, placed, restore: s };
+        } else {
+          set(long, rest(l, `Done on ${dayName(s)} instead.`));
+          dropped = dropped.filter((p) => p !== long);
+        }
+        set(i, { ...l, id: `${s.date}-long`, date: s.date, description: `Counts as this week's long run, planned on ${dayName(l)}.`, adjusted: true });
+        done.set(i, 'long');
+        continue;
+      }
       const kind = hardKind(s);
       if (kind) done.set(i, kind);
       continue;
@@ -111,11 +156,14 @@ export function adaptWeek(sessions: Session[], logged: Map<LocalDate, number>, o
     if (km > 0) {
       // A run on a rest day.
       let why = 'Extra run on top of the plan.';
-      const long = out.findIndex((x, p) => x.type === 'long' && (p > i || dropped.includes(p)));
+      const long = openLong(i);
       const shifted = dropped.filter((p) => out[p]!.type !== 'long').at(-1);
       const nextEasy = out.findIndex((x, p) => p > i && isEasyRun(x));
-      if (long >= 0 && km >= LONG_RUN_MATCH * out[long]!.distanceKm) {
-        set(long, rest(out[long]!, long < i ? `Done on ${dayName(s)} instead.` : `Long run already done on ${dayName(s)}.`));
+      if (long >= 0 && longEnough(km, out[long]!)) {
+        const l = out[long]!;
+        const placed = rest(l, long < i ? `Done on ${dayName(s)} instead.` : `Long run already done on ${dayName(s)}.`);
+        set(long, placed);
+        if (long > i) swap = { early: i, late: long, long: l, placed };
         dropped = dropped.filter((p) => p !== long);
         done.set(i, 'long');
         why = "Counts as this week's long run.";
@@ -148,5 +196,5 @@ export function adaptWeek(sessions: Session[], logged: Map<LocalDate, number>, o
     set(i, rest(s, `Missed. ${s.title} moved to ${dayName(to)}.`));
   }
 
-  return changed ? out : sessions;
+  return out.some((s, i) => s !== sessions[i]) ? out : sessions;
 }

@@ -88,6 +88,19 @@ describe('plan', () => {
       expect(week.sessions.filter((x) => x.distanceKm > 0)).toHaveLength(5);
     });
 
+    it('swaps the long run with an easy run that was run long, and back if the long run is run anyway', () => {
+      const followed = [run('2026-11-03', 6.5), run('2026-11-04', 6.5), run('2026-11-05', 6.5)];
+      // Friday's easy run turned into 14 km: that is the long run, and Sunday gets the easy run.
+      const sat = plan(baseState({ log: [...followed, run('2026-11-06', 14)] }), '2026-11-07').weeks[0]!;
+      expect(sat.sessions[4]).toMatchObject({ date: '2026-11-06', type: 'long', title: planned[6]!.title });
+      expect(sat.sessions[6]).toMatchObject({ date: '2026-11-08', type: 'easy', title: planned[4]!.title });
+      expect(sat.sessions.filter((x) => x.distanceKm > 0)).toHaveLength(5);
+      // The long run on Sunday as first planned: Friday counts as the easy run again.
+      const sun = plan(baseState({ log: [...followed, run('2026-11-06', 14), run('2026-11-08', 16)] }), '2026-11-08').weeks[0]!;
+      expect(sun.sessions).toEqual(planned);
+      expect(sun.notes).toEqual(original.weeks[0]!.notes);
+    });
+
     it('treats today without an entry as not yet logged, and earlier days as missed', () => {
       const tue = [run('2026-11-03', 6.5)];
       // Wednesday, nothing logged for today: the tempo is still on.
