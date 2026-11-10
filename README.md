@@ -1,6 +1,6 @@
 # Running Planner
 
-An adaptive marathon training plan that lives entirely in your browser. No account, no server.
+An adaptive running training plan for any race distance. It lives entirely in your browser: no account, no server.
 
 **Live app:** https://elkei24.github.io/running-planner/
 

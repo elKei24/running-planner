@@ -22,7 +22,7 @@ describe('App', () => {
 
   it('shows the setup form when there is no plan and creates one', async () => {
     render(<App />);
-    expect(screen.getByText('Plan your marathon')).toBeTruthy();
+    expect(screen.getByText('Plan your race')).toBeTruthy();
     const date = document.querySelector<HTMLInputElement>('input[type=date]')!;
     await act(async () => {
       fireEvent.input(date, { target: { value: '2027-03-14' } });

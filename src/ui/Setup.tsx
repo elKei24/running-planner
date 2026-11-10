@@ -44,7 +44,7 @@ export function Setup() {
     <form onSubmit={submit} class="stack">
       <div class="hero">
         <span class="eyebrow">No account · no server · adapts every week</span>
-        <h1>Plan your marathon</h1>
+        <h1>Plan your race</h1>
         <p>
           Everything stays in this browser. The plan is recomputed from your goal, your log and your calendar every time you open the app, so skipped
           weeks, holidays and tune-up races are handled automatically.

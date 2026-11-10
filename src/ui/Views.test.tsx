@@ -221,7 +221,7 @@ describe('views', () => {
       fireEvent.click(screen.getByText('Yes, delete'));
     });
     await waitFor(() => expect(state.value).toBeNull());
-    expect(screen.getByText('Plan your marathon')).toBeTruthy();
+    expect(screen.getByText('Plan your race')).toBeTruthy();
   });
 
   it('store actions update and remove', () => {
